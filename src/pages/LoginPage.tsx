@@ -1,5 +1,5 @@
 /* ====== TrustGen — Login / Register Page ====== */
-import { useState, FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useAuthStore } from '../stores/authStore'
 
 export function LoginPage() {
@@ -22,7 +22,7 @@ export function LoginPage() {
         <div className="auth-page">
             {/* Animated background gradient mesh */}
             <div className="auth-bg" style={{
-                background: 'radial-gradient(ellipse at 20% 50%, rgba(108,92,231,0.15), transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(0,206,201,0.1), transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(253,121,168,0.08), transparent 50%), var(--bg-void)',
+                background: 'radial-gradient(ellipse at 20% 50%, rgba(168,85,247,0.15), transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(6,182,212,0.1), transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(217,70,239,0.08), transparent 50%), var(--bg-void)',
             }} />
 
             <div className="auth-card">

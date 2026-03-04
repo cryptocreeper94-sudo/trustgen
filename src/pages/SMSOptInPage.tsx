@@ -1,5 +1,5 @@
 /* ====== TrustGen — SMS Opt-In Page ====== */
-import { useState, FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/apiClient'
 import { showToast } from '../components/Toast'
@@ -62,7 +62,7 @@ export function SMSOptInPage() {
     return (
         <div className="auth-page">
             <div className="auth-bg" style={{
-                background: 'radial-gradient(ellipse at 30% 50%, rgba(0,206,201,0.12), transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(108,92,231,0.1), transparent 60%), var(--bg-void)',
+                background: 'radial-gradient(ellipse at 30% 50%, rgba(6,182,212,0.12), transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(168,85,247,0.1), transparent 60%), var(--bg-void)',
             }} />
 
             <div className="auth-card sms-optin-card">

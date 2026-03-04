@@ -3,7 +3,7 @@ import { useRef, useEffect, Suspense } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { useEngineStore } from '../store'
-import { ParticleSystem, getParticleConfig } from './ParticleSystem'
+import { ParticleSystem } from './ParticleSystem'
 import type { MaterialDef, PrimitiveKind } from '../types'
 
 function PrimitiveGeometry({ kind }: { kind: PrimitiveKind }) {
@@ -78,13 +78,10 @@ interface SceneNode3DProps {
 
 export function SceneNode3D({ nodeId }: SceneNode3DProps) {
     const node = useEngineStore(s => s.nodes[nodeId])
-    const selectedId = useEngineStore(s => s.editor.selectedNodeId)
     const selectNode = useEngineStore(s => s.selectNode)
     const updateNode = useEngineStore(s => s.updateNode)
     const meshRef = useRef<THREE.Mesh>(null!)
     const groupRef = useRef<THREE.Group>(null!)
-
-    const isSelected = selectedId === nodeId
 
     // Store ref on node for gizmo access
     useEffect(() => {

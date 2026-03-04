@@ -2,9 +2,8 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type {
-    EngineState, SceneNode, NodeKind, ToolMode, GizmoSpace,
-    SidebarTab, EnvironmentState, CameraState, PostProcessingState,
-    ExportState, DEFAULT_TRANSFORM, DEFAULT_MATERIAL, MaterialDef,
+    EngineState, SceneNode,
+    MaterialDef,
     LightDef, Transform
 } from './types'
 
@@ -452,7 +451,7 @@ export const useEngineStore = create<EngineState>((set, get) => ({
     updateEffect: (key, patch) => set(s => ({
         postProcessing: {
             ...s.postProcessing,
-            [key]: typeof patch === 'string' ? patch : { ...(s.postProcessing[key] as any), ...patch },
+            [key]: typeof patch === 'string' ? patch : Object.assign({}, (s.postProcessing as any)[key], patch),
         },
     })),
 

@@ -1,7 +1,7 @@
 /* ====== TrustGen — Scene Hierarchy Panel ====== */
-import React, { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useEngineStore } from '../store'
-import type { SceneNode, PrimitiveKind, NodeKind } from '../types'
+import type { PrimitiveKind, NodeKind } from '../types'
 
 const NODE_ICONS: Record<NodeKind, string> = {
     mesh: '🔷', light: '💡', camera: '🎥', group: '📁', particles: '✨', model: '📦'
