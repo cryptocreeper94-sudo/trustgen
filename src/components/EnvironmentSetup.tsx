@@ -1,5 +1,5 @@
 /* ====== TrustGen — Environment Setup ====== */
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { Environment, ContactShadows, Sky } from '@react-three/drei'
 import * as THREE from 'three'
 import { useEngineStore } from '../store'

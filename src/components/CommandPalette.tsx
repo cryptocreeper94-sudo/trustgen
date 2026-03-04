@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEngineStore } from '../store'
 import { triggerModelImport } from './ModelImporter'
-import type { ToolMode } from '../types'
 
 interface Command {
     id: string
