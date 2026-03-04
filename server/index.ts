@@ -800,3 +800,31 @@ app.get('/api/network/stats', async (_req, res) => {
         res.status(500).json({ error: 'Failed to get network stats' })
     }
 })
+
+// ════════════════════════════════
+//  HEALTH CHECK
+// ════════════════════════════════
+app.get('/api/health', async (_req, res) => {
+    try {
+        await pool.query('SELECT 1')
+        res.json({ status: 'ok', timestamp: new Date().toISOString() })
+    } catch {
+        res.status(503).json({ status: 'unhealthy', timestamp: new Date().toISOString() })
+    }
+})
+
+// ════════════════════════════════
+//  BOOT
+// ════════════════════════════════
+async function boot() {
+    await initDB()
+    app.listen(PORT, () => {
+        console.log(`🚀 TrustGen server running on port ${PORT}`)
+    })
+}
+
+boot().catch(err => {
+    console.error('❌ Failed to start server:', err)
+    process.exit(1)
+})
+
