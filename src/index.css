@@ -3929,3 +3929,512 @@ input[type="text"].ai-input:focus {
     padding: 60px 16px 32px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   SIGNAL CHAT WIDGET
+═══════════════════════════════════════════ */
+
+/* Side tab */
+.signal-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 10px;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border: none;
+  border-radius: 12px 0 0 12px;
+  cursor: pointer;
+  box-shadow: -4px 0 20px rgba(124, 58, 237, 0.3);
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  transition: all 0.3s;
+  font-family: var(--font-sans);
+}
+
+.signal-tab:hover {
+  padding-right: 14px;
+  box-shadow: -6px 0 30px rgba(124, 58, 237, 0.5);
+}
+
+.signal-tab-icon {
+  font-size: 18px;
+  writing-mode: horizontal-tb;
+}
+
+.signal-tab-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.signal-tab-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: horizontal-tb;
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Modal backdrop */
+.signal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Chat modal */
+.signal-modal {
+  width: 420px;
+  max-width: 100%;
+  height: calc(100vh - 32px);
+  max-height: 700px;
+  border-radius: var(--radius-lg);
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 58, 237, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.signal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.signal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.signal-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.signal-header-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.signal-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.signal-status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(0, 184, 148, 0.5);
+}
+
+.signal-status-dot.offline {
+  background: var(--text-muted);
+}
+
+.signal-header-right {
+  display: flex;
+  gap: 4px;
+}
+
+.signal-btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.signal-btn-icon:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+/* Auth view */
+.signal-auth {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.signal-auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.signal-auth-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+
+.signal-auth-header p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.signal-auth-form {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signal-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: var(--font-sans);
+}
+
+.signal-input:focus {
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+.signal-input::placeholder {
+  color: var(--text-muted);
+}
+
+.signal-error {
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
+}
+
+.signal-btn-primary {
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.signal-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+  transform: translateY(-1px);
+}
+
+.signal-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.signal-auth-toggle {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.signal-auth-toggle button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  font-family: var(--font-sans);
+}
+
+.signal-auth-footer {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.signal-auth-footer a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+/* Chat body */
+.signal-chat-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* Channel sidebar */
+.signal-channels {
+  width: 140px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 8px 0;
+}
+
+.signal-channels-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+
+.signal-channel-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-sans);
+}
+
+.signal-channel-item:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.signal-channel-item.active {
+  color: var(--text-bright);
+  background: rgba(124, 58, 237, 0.15);
+  border-left: 2px solid var(--accent);
+}
+
+/* Messages area */
+.signal-messages-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.signal-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signal-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  gap: 8px;
+}
+
+/* Individual message */
+.signal-message {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.signal-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.signal-message-body {
+  min-width: 0;
+}
+
+.signal-message-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.signal-message-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.signal-message-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.signal-message-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Typing indicator */
+.signal-typing {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Input bar */
+.signal-input-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.signal-input-bar .signal-input {
+  flex: 1;
+}
+
+.signal-send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.signal-send-btn:hover:not(:disabled) {
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.4);
+}
+
+.signal-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .signal-modal {
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .signal-modal-backdrop {
+    padding: 0;
+  }
+
+  .signal-channels {
+    width: 110px;
+  }
+
+  .signal-tab {
+    top: auto;
+    bottom: 80px;
+  }
+}

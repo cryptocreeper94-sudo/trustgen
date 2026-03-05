@@ -20,6 +20,7 @@ import { PrivacyPage } from './pages/PrivacyPage'
 import { LegalPage } from './pages/LegalPage'
 import { BlogPage } from './pages/BlogPage'
 import { BlogPostPage } from './pages/BlogPostPage'
+import { SignalChatWidget } from './components/SignalChatWidget'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -128,6 +129,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/explore" replace />} />
       </Routes>
       <ToastContainer />
+      <SignalChatWidget />
     </BrowserRouter>
   )
 }
