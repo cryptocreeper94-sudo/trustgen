@@ -817,15 +817,44 @@ app.get('/api/health', async (_req, res) => {
 //  BOOT
 // ════════════════════════════════
 async function boot() {
-    await initDB()
+    try {
+        await initDB()
+    } catch (err) {
+        console.error('❌ Database initialization failed:', err)
+        process.exit(1)
+    }
+
     const port = Number(process.env.PORT) || 4000
-    app.listen(port, '0.0.0.0', () => {
-        console.log(`🚀 TrustGen server running on port ${port}`)
+    console.log(`Attempting to start on port ${port}...`)
+
+    const server = app.listen(port, '0.0.0.0', () => {
+        console.log(`🚀 TrustGen server running on 0.0.0.0:${port}`)
     })
+
+    server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`❌ Port ${port} in use. Retrying in 3s...`)
+            setTimeout(() => {
+                server.close()
+                server.listen(port, '0.0.0.0')
+            }, 3000)
+        } else {
+            console.error('❌ Server error:', err)
+            process.exit(1)
+        }
+    })
+
+    // Graceful shutdown — release port on exit
+    const shutdown = () => {
+        console.log('Shutting down...')
+        server.close(() => process.exit(0))
+        setTimeout(() => process.exit(1), 5000)
+    }
+    process.on('SIGTERM', shutdown)
+    process.on('SIGINT', shutdown)
 }
 
 boot().catch(err => {
     console.error('❌ Failed to start server:', err)
     process.exit(1)
 })
-

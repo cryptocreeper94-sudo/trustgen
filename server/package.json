@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "npx tsx --watch index.ts",
-        "start": "npx tsx index.ts",
+        "start": "node --import tsx/esm index.ts",
         "build": "echo 'Using tsx runtime - no build needed'"
     },
     "dependencies": {
