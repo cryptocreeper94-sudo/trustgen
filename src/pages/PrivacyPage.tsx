@@ -111,7 +111,7 @@ export function PrivacyPage() {
                         <p>
                             You have the right to: access your personal data, correct inaccuracies, request deletion,
                             export your data, and withdraw consent for optional communications. Contact us at{' '}
-                            <a href="mailto:privacy@darkwavestudios.io">privacy@darkwavestudios.io</a>.
+                            <a href="mailto:team@dwsc.io">team@dwsc.io</a>.
                         </p>
                     </section>
 
@@ -127,7 +127,7 @@ export function PrivacyPage() {
                         <h2>10. Contact</h2>
                         <p>
                             DarkWave Studios LLC<br />
-                            Email: <a href="mailto:privacy@darkwavestudios.io">privacy@darkwavestudios.io</a>
+                            Email: <a href="mailto:team@dwsc.io">team@dwsc.io</a>
                         </p>
                     </section>
                 </div>

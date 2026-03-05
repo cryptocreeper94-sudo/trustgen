@@ -100,7 +100,7 @@ export function TermsPage() {
                         <h2>10. Contact</h2>
                         <p>
                             For questions about these Terms, contact us at{' '}
-                            <a href="mailto:legal@darkwavestudios.io">legal@darkwavestudios.io</a>.
+                            <a href="mailto:team@dwsc.io">team@dwsc.io</a>.
                         </p>
                     </section>
                 </div>

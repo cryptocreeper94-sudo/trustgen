@@ -31,13 +31,13 @@ const LEGAL_ITEMS = [
         icon: '©️',
         title: 'Copyright & DMCA',
         description: 'Report copyright infringement. TrustGen respects intellectual property rights.',
-        email: 'legal@darkwavestudios.io',
+        email: 'team@dwsc.io',
     },
     {
         icon: '📧',
         title: 'Contact Legal',
         description: 'Questions about our legal policies? Reach our legal team directly.',
-        email: 'legal@darkwavestudios.io',
+        email: 'team@dwsc.io',
     },
 ]
 
