@@ -21,6 +21,8 @@ import { LegalPage } from './pages/LegalPage'
 import { BlogPage } from './pages/BlogPage'
 import { BlogPostPage } from './pages/BlogPostPage'
 import { SignalChatWidget } from './components/SignalChatWidget'
+import { HamburgerMenu } from './components/HamburgerMenu'
+import { InvestorPage } from './pages/InvestorPage'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -108,6 +110,7 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/legal" element={<LegalPage />} />
         <Route path="/dev-portal" element={<DevPortalPage />} />
+        <Route path="/investors" element={<InvestorPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
 
@@ -130,6 +133,7 @@ export default function App() {
       </Routes>
       <ToastContainer />
       <SignalChatWidget />
+      <HamburgerMenu />
     </BrowserRouter>
   )
 }

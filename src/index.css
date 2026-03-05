@@ -4438,3 +4438,224 @@ input[type="text"].ai-input:focus {
     bottom: 80px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   HAMBURGER MENU
+═══════════════════════════════════════════ */
+.hamburger-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 9998;
+  width: 40px;
+  height: 40px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.hamburger-btn:hover {
+  border-color: rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hamburger-line {
+  width: 18px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.hamburger-line.open:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-line.open:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-line.open:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+.hamburger-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.hamburger-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 300px;
+  max-width: 85vw;
+  height: 100vh;
+  background: rgba(15, 15, 25, 0.97);
+  border-right: 1px solid rgba(168, 85, 247, 0.15);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  animation: slideFromLeft 0.3s ease-out;
+  overflow-y: auto;
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.hamburger-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hamburger-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+}
+
+.hamburger-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.hamburger-role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hamburger-signin {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+/* Mission statement */
+.hamburger-mission {
+  padding: 16px 20px;
+  margin: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.1);
+}
+
+.hamburger-mission-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.hamburger-mission p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.hamburger-mission-brand {
+  margin-top: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Navigation links */
+.hamburger-nav {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.hamburger-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+
+.hamburger-link:hover {
+  color: var(--text-bright);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hamburger-link.active {
+  color: var(--accent);
+  background: rgba(168, 85, 247, 0.08);
+  border-left: 2px solid var(--accent);
+}
+
+.hamburger-link-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+/* Bottom */
+.hamburger-bottom {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hamburger-footer-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  text-align: center;
+}
+
+.hamburger-footer-text a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.hamburger-footer-text a:hover {
+  color: var(--accent-2);
+}
