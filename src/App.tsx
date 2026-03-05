@@ -129,6 +129,7 @@ export default function App() {
         } />
 
         {/* Default → Explore */}
+        <Route path="/" element={<Navigate to="/explore" replace />} />
         <Route path="*" element={<Navigate to="/explore" replace />} />
       </Routes>
       <ToastContainer />

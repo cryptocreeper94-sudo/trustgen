@@ -93,6 +93,20 @@ export function LoginPage() {
                         )}
                     </div>
                 </form>
+
+                {/* Platform links */}
+                <div className="auth-links">
+                    <a href="/explore">← Explore Platform</a>
+                    <span className="auth-links-sep">·</span>
+                    <a href="/investors">Investors</a>
+                    <span className="auth-links-sep">·</span>
+                    <a href="/blog">Blog</a>
+                    <span className="auth-links-sep">·</span>
+                    <a href="/legal">Legal</a>
+                </div>
+                <div className="auth-links" style={{ marginTop: 4 }}>
+                    <a href="/dev-portal" style={{ opacity: 0.5, fontSize: 10 }}>🛠️ Developer Portal</a>
+                </div>
             </div>
         </div>
     )
