@@ -3115,7 +3115,151 @@ input[type="text"].ai-input:focus {
   flex-direction: column;
 }
 
+/* Hero carousel */
+.hero-carousel {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  min-height: 480px;
+  overflow: hidden;
+}
+
+.hero-carousel-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.hero-slide-enter {
+  animation: heroFadeIn 0.8s ease-in-out forwards;
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-carousel-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+      rgba(6, 6, 10, 0.6) 0%,
+      rgba(6, 6, 10, 0.4) 40%,
+      rgba(6, 6, 10, 0.7) 80%,
+      rgba(6, 6, 10, 1) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-carousel-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.hero-carousel-sub {
+  font-size: clamp(14px, 2vw, 18px);
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 16px;
+  line-height: 1.6;
+}
+
+.hero-carousel-label {
+  font-size: clamp(16px, 2.5vw, 22px);
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+  animation: labelFadeIn 0.5s ease-out;
+}
+
+.hero-carousel-label-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  animation: labelFadeIn 0.5s ease-out 0.1s both;
+}
+
+@keyframes labelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dot navigation */
+.hero-carousel-dots {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.hero-dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.2);
+}
+
+.hero-dot.active {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  transform: scale(1.3);
+}
+
+@media (max-width: 768px) {
+  .hero-carousel {
+    height: 60vh;
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-carousel {
+    height: 55vh;
+    min-height: 360px;
+  }
+}
+
 .explore-hero {
+
   position: relative;
   padding: 100px 24px 80px;
   text-align: center;
