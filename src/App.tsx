@@ -13,6 +13,13 @@ import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { SMSOptInPage } from './pages/SMSOptInPage'
 import { BillingPage } from './pages/BillingPage'
+import { ExplorePage } from './pages/ExplorePage'
+import { DevPortalPage } from './pages/DevPortalPage'
+import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
+import { LegalPage } from './pages/LegalPage'
+import { BlogPage } from './pages/BlogPage'
+import { BlogPostPage } from './pages/BlogPostPage'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -32,68 +39,28 @@ function EditorLayout() {
   const node = useEngineStore(s => selectedId ? s.nodes[selectedId] : null)
   const timeline = useEngineStore(s => s.timeline)
 
-  // Seed a demo scene on first load
   useEffect(() => {
     const state = useEngineStore.getState()
     if (Object.keys(state.nodes).length === 0) {
-      // Add a demo cube
       state.addNode({
-        kind: 'mesh',
-        name: 'Cube',
-        primitive: 'box',
-        transform: {
-          position: { x: 0, y: 0.5, z: 0 },
-          rotation: { x: 0, y: 45, z: 0 },
-          scale: { x: 1, y: 1, z: 1 },
-        },
-        material: {
-          color: '#a855f7', metalness: 0.3, roughness: 0.4,
-          emissive: '#4c1d95', emissiveIntensity: 0.2,
-          opacity: 1, transparent: false, wireframe: false, preset: 'default',
-        },
+        kind: 'mesh', name: 'Cube', primitive: 'box',
+        transform: { position: { x: 0, y: 0.5, z: 0 }, rotation: { x: 0, y: 45, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
+        material: { color: '#a855f7', metalness: 0.3, roughness: 0.4, emissive: '#4c1d95', emissiveIntensity: 0.2, opacity: 1, transparent: false, wireframe: false, preset: 'default' },
       })
-      // Add a sphere
       state.addNode({
-        kind: 'mesh',
-        name: 'Sphere',
-        primitive: 'sphere',
-        transform: {
-          position: { x: 2, y: 0.5, z: -1 },
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 1, y: 1, z: 1 },
-        },
-        material: {
-          color: '#06b6d4', metalness: 0.8, roughness: 0.1,
-          emissive: '#000000', emissiveIntensity: 0,
-          opacity: 1, transparent: false, wireframe: false, preset: 'chrome',
-        },
+        kind: 'mesh', name: 'Sphere', primitive: 'sphere',
+        transform: { position: { x: 2, y: 0.5, z: -1 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
+        material: { color: '#06b6d4', metalness: 0.8, roughness: 0.1, emissive: '#000000', emissiveIntensity: 0, opacity: 1, transparent: false, wireframe: false, preset: 'chrome' },
       })
-      // Add a ground plane
       state.addNode({
-        kind: 'mesh',
-        name: 'Ground',
-        primitive: 'plane',
-        transform: {
-          position: { x: 0, y: 0, z: 0 },
-          rotation: { x: -90, y: 0, z: 0 },
-          scale: { x: 10, y: 10, z: 1 },
-        },
-        material: {
-          color: '#1a1a2e', metalness: 0, roughness: 0.95,
-          emissive: '#000000', emissiveIntensity: 0,
-          opacity: 1, transparent: false, wireframe: false, preset: 'concrete',
-        },
+        kind: 'mesh', name: 'Ground', primitive: 'plane',
+        transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: -90, y: 0, z: 0 }, scale: { x: 10, y: 10, z: 1 } },
+        material: { color: '#1a1a2e', metalness: 0, roughness: 0.95, emissive: '#000000', emissiveIntensity: 0, opacity: 1, transparent: false, wireframe: false, preset: 'concrete' },
       })
-      // Add a point light
       state.addNode({
-        kind: 'light',
-        name: 'Point Light',
+        kind: 'light', name: 'Point Light',
         light: { kind: 'point', color: '#06b6d4', intensity: 2, castShadow: true, distance: 15, decay: 2 },
-        transform: {
-          position: { x: 2, y: 3, z: 2 },
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 1, y: 1, z: 1 },
-        },
+        transform: { position: { x: 2, y: 3, z: 2 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
       })
     }
     startAutoSave()
@@ -101,42 +68,22 @@ function EditorLayout() {
 
   return (
     <div className="app-layout">
-      {/* Viewport */}
       <div className="viewport-container">
         <Viewport />
         <ViewportToolbar />
-
-        {/* Status bar */}
         <div className="status-bar">
-          <span className="status-item">
-            <span className="status-dot" /> WebGL2
-          </span>
-          <span className="status-item">
-            Objects: {nodeCount}
-          </span>
-          {node && (
-            <span className="status-item">
-              Selected: {node.name}
-            </span>
-          )}
-          <span className="status-item">
-            {timeline.playing ? `▶ ${timeline.currentTime.toFixed(1)}s` : '⏸ Paused'}
-          </span>
+          <span className="status-item"><span className="status-dot" /> WebGL2</span>
+          <span className="status-item">Objects: {nodeCount}</span>
+          {node && <span className="status-item">Selected: {node.name}</span>}
+          <span className="status-item">{timeline.playing ? `▶ ${timeline.currentTime.toFixed(1)}s` : '⏸ Paused'}</span>
           <span className="status-item" style={{ marginLeft: 'auto', cursor: 'pointer', opacity: 0.7 }}
-            onClick={() => { resetOnboarding(); window.location.reload() }}
-            title="Replay onboarding tour">
+            onClick={() => { resetOnboarding(); window.location.reload() }} title="Replay onboarding tour">
             ❓ Help
           </span>
         </div>
       </div>
-
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Command Palette */}
       <CommandPalette />
-
-      {/* Onboarding */}
       <OnboardingModal />
     </div>
   )
@@ -153,7 +100,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public routes */}
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/legal" element={<LegalPage />} />
+        <Route path="/dev-portal" element={<DevPortalPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+
+        {/* Protected routes */}
         <Route path="/dashboard" element={
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
         } />
@@ -166,7 +123,9 @@ export default function App() {
         <Route path="/billing" element={
           <ProtectedRoute><BillingPage /></ProtectedRoute>
         } />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+
+        {/* Default → Explore */}
+        <Route path="*" element={<Navigate to="/explore" replace />} />
       </Routes>
       <ToastContainer />
     </BrowserRouter>

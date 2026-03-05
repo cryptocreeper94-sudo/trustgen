@@ -814,11 +814,163 @@ app.get('/api/health', async (_req, res) => {
 })
 
 // ════════════════════════════════
+//  ADMIN ROUTES (Developer Portal)
+// ════════════════════════════════
+const serverStartTime = Date.now()
+
+app.get('/api/admin/health', async (_req, res) => {
+    try {
+        const dbStart = Date.now()
+        await pool.query('SELECT 1')
+        const dbLatency = Date.now() - dbStart
+        const mem = process.memoryUsage()
+        res.json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor((Date.now() - serverStartTime) / 1000),
+            memory: {
+                used: Math.round(mem.heapUsed / 1024 / 1024),
+                total: Math.round(mem.heapTotal / 1024 / 1024),
+                rss: Math.round(mem.rss / 1024 / 1024),
+            },
+            dbConnected: true,
+            dbLatencyMs: dbLatency,
+        })
+    } catch (err: any) {
+        res.json({
+            status: 'degraded',
+            timestamp: new Date().toISOString(),
+            dbConnected: false,
+            error: err.message,
+        })
+    }
+})
+
+app.get('/api/admin/stats', async (_req, res) => {
+    try {
+        const tables: Record<string, number> = {}
+        for (const t of ['tenants', 'users', 'projects', 'trust_stamps', 'subscriptions']) {
+            try {
+                const r = await pool.query(`SELECT COUNT(*) FROM ${t}`)
+                tables[t] = parseInt(r.rows[0].count)
+            } catch { tables[t] = -1 }
+        }
+        res.json({ tables, timestamp: new Date().toISOString() })
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+app.get('/api/admin/env-status', (_req, res) => {
+    const vars = [
+        'DATABASE_URL', 'JWT_SECRET', 'RESEND_API_KEY',
+        'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER',
+        'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PRICE_PRO', 'STRIPE_PRICE_ENTERPRISE',
+        'TRUSTLAYER_API_KEY', 'TRUSTLAYER_API_SECRET', 'TRUSTLAYER_BASE_URL',
+        'CLIENT_URL', 'PORT',
+    ]
+    const variables: Record<string, boolean> = {}
+    vars.forEach(v => { variables[v] = !!process.env[v] })
+    res.json({ variables, timestamp: new Date().toISOString() })
+})
+
+// ════════════════════════════════
+//  BLOG ROUTES
+// ════════════════════════════════
+
+// Blog posts table (created in initDB extension)
+async function initBlogTable() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS blog_posts (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            slug TEXT UNIQUE NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            excerpt TEXT,
+            category TEXT DEFAULT 'general',
+            tags TEXT[] DEFAULT '{}',
+            author TEXT DEFAULT 'TrustGen Team',
+            thumbnail_url TEXT,
+            published BOOLEAN DEFAULT false,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    `)
+}
+
+app.get('/api/blog', async (req, res) => {
+    try {
+        const publishedOnly = req.query.all !== 'true'
+        const where = publishedOnly ? 'WHERE published = true' : ''
+        const result = await pool.query(
+            `SELECT id, slug, title, excerpt, category, tags, author, thumbnail_url, published, created_at, updated_at
+             FROM blog_posts ${where} ORDER BY created_at DESC LIMIT 50`
+        )
+        res.json(result.rows)
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+app.get('/api/blog/:slug', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM blog_posts WHERE slug = $1', [req.params.slug])
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Post not found' })
+        res.json(result.rows[0])
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+app.post('/api/blog', async (req, res) => {
+    try {
+        const { slug, title, content, excerpt, category, tags, author, thumbnail_url, published } = req.body
+        if (!slug || !title || !content) return res.status(400).json({ error: 'slug, title, content required' })
+        const result = await pool.query(
+            `INSERT INTO blog_posts (slug, title, content, excerpt, category, tags, author, thumbnail_url, published)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [slug, title, content, excerpt || '', category || 'general', tags || [], author || 'TrustGen Team', thumbnail_url || '', published || false]
+        )
+        res.status(201).json(result.rows[0])
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+app.put('/api/blog/:id', async (req, res) => {
+    try {
+        const { slug, title, content, excerpt, category, tags, author, thumbnail_url, published } = req.body
+        const result = await pool.query(
+            `UPDATE blog_posts SET slug=COALESCE($1,slug), title=COALESCE($2,title), content=COALESCE($3,content),
+             excerpt=COALESCE($4,excerpt), category=COALESCE($5,category), tags=COALESCE($6,tags),
+             author=COALESCE($7,author), thumbnail_url=COALESCE($8,thumbnail_url), published=COALESCE($9,published),
+             updated_at=NOW() WHERE id=$10 RETURNING *`,
+            [slug, title, content, excerpt, category, tags, author, thumbnail_url, published, req.params.id]
+        )
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        res.json(result.rows[0])
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+app.delete('/api/blog/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM blog_posts WHERE id = $1', [req.params.id])
+        res.json({ ok: true })
+    } catch (err: any) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// ════════════════════════════════
 //  BOOT
 // ════════════════════════════════
+
 async function boot() {
     try {
         await initDB()
+        await initBlogTable()
     } catch (err) {
         console.error('❌ Database initialization failed:', err)
         process.exit(1)
