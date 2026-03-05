@@ -818,8 +818,9 @@ app.get('/api/health', async (_req, res) => {
 // ════════════════════════════════
 async function boot() {
     await initDB()
-    app.listen(PORT, () => {
-        console.log(`🚀 TrustGen server running on port ${PORT}`)
+    const port = Number(process.env.PORT) || 4000
+    app.listen(port, '0.0.0.0', () => {
+        console.log(`🚀 TrustGen server running on port ${port}`)
     })
 }
 
