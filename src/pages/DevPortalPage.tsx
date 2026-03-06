@@ -131,7 +131,12 @@ export function DevPortalPage() {
                 method: method === 'GET' ? 'GET' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
-            const data = await res.json().catch(() => ({ raw: await res.text() }))
+            let data
+            try {
+                data = await res.json()
+            } catch {
+                data = { raw: await res.text() }
+            }
             setApiTestResult({ endpoint: `${method} ${path}`, status: res.status, data })
         } catch (err: any) {
             setApiTestResult({ endpoint: `${method} ${path}`, status: 0, data: { error: err.message } })
