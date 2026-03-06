@@ -10,7 +10,7 @@ const PARTICLE_CONFIGS: Record<ParticlePreset, Partial<ParticleDef>> = {
     sparkles: { count: 200, speed: 0.8, size: 0.04, colorStart: '#ffd93d', colorEnd: '#ff6b6b', spread: 3, lifetime: 3 },
     rain: { count: 500, speed: 8, size: 0.02, colorStart: '#88bbdd', colorEnd: '#4488bb', spread: 10, lifetime: 2 },
     snow: { count: 400, speed: 0.5, size: 0.03, colorStart: '#ffffff', colorEnd: '#ccddee', spread: 10, lifetime: 8 },
-    magic: { count: 250, speed: 0.6, size: 0.05, colorStart: '#a855f7', colorEnd: '#d946ef', spread: 2, lifetime: 3 },
+    magic: { count: 250, speed: 0.6, size: 0.05, colorStart: '#06b6d4', colorEnd: '#d946ef', spread: 2, lifetime: 3 },
     explosion: { count: 500, speed: 5, size: 0.1, colorStart: '#ff4444', colorEnd: '#ffaa00', spread: 0.5, lifetime: 1 },
     fireflies: { count: 100, speed: 0.3, size: 0.06, colorStart: '#aaff44', colorEnd: '#88cc22', spread: 5, lifetime: 5 },
 }

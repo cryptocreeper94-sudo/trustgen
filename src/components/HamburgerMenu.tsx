@@ -8,8 +8,10 @@ const NAV_LINKS = [
     { label: 'Dashboard', path: '/dashboard', icon: '📊', auth: true },
     { label: '3D Editor', path: '/editor', icon: '🎨', auth: true },
     { label: 'Blog', path: '/blog', icon: '📝' },
+    { label: 'Asset Pipeline', path: '/workspace', icon: '🎮', auth: true },
     { label: 'Billing', path: '/billing', icon: '💎', auth: true },
     { label: 'SMS Alerts', path: '/sms-opt-in', icon: '📱', auth: true },
+    { label: 'Share & Earn', path: '/affiliate', icon: '🤝', auth: true },
     { label: 'Investor Info', path: '/investors', icon: '📈' },
     { label: 'Legal', path: '/legal', icon: '⚖️' },
     { label: 'Dev Portal', path: '/dev-portal', icon: '🛠️' },
@@ -50,10 +52,10 @@ export function HamburgerMenu() {
                             {isAuthenticated && user ? (
                                 <>
                                     <div className="hamburger-avatar">
-                                        {(user.username || user.email || 'U')[0].toUpperCase()}
+                                        {(user.name || user.email || 'U')[0].toUpperCase()}
                                     </div>
                                     <div>
-                                        <div className="hamburger-username">{user.username || user.email}</div>
+                                        <div className="hamburger-username">{user.name || user.email}</div>
                                         <div className="hamburger-role">TrustGen Creator</div>
                                     </div>
                                 </>

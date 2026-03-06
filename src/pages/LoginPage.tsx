@@ -80,9 +80,17 @@ export function LoginPage() {
 
                     <div className="auth-divider">or</div>
 
-                    {/* SSO stubs */}
-                    <button type="button" className="btn full-width" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-                        🔐 SSO / Enterprise Login (Coming Soon)
+                    {/* Trust Layer SSO */}
+                    <button
+                        type="button"
+                        className="auth-sso-btn"
+                        onClick={() => {
+                            const redirectUrl = encodeURIComponent(window.location.origin + '/api/auth/sso-callback')
+                            window.location.href = `https://dwtl.io/hub/sso?app=trustgen&redirect=${redirectUrl}`
+                        }}
+                    >
+                        <span className="auth-sso-icon">◈</span>
+                        Sign in with Trust Layer
                     </button>
 
                     <div className="auth-toggle">

@@ -1,10 +1,12 @@
 /* ====== TrustGen — Main Application ====== */
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { Viewport } from './components/Viewport'
 import { Sidebar } from './components/Sidebar'
 import { ViewportToolbar } from './components/ViewportToolbar'
 import { CommandPalette } from './components/CommandPalette'
+import { StudioPanel } from './components/StudioPanel'
+import { useStudioStore } from './stores/studioStore'
 import { ToastContainer } from './components/Toast'
 import { OnboardingModal, resetOnboarding } from './components/OnboardingModal'
 import { useEngineStore, startAutoSave } from './store'
@@ -23,6 +25,8 @@ import { BlogPostPage } from './pages/BlogPostPage'
 import { SignalChatWidget } from './components/SignalChatWidget'
 import { HamburgerMenu } from './components/HamburgerMenu'
 import { InvestorPage } from './pages/InvestorPage'
+import { WorkspacePage } from './pages/WorkspacePage'
+import { AffiliatePage } from './pages/AffiliatePage'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -35,6 +39,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/* ── Referral Capture ── */
+function ReferralCapture() {
+  const { hash } = useParams()
+  useEffect(() => {
+    if (hash) {
+      localStorage.setItem('trustgen-referral', hash)
+      // Track click
+      fetch('/api/referrals/track-click', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: hash }),
+      }).catch(() => { })
+    }
+  }, [hash])
+  return <Navigate to="/explore" replace />
+}
 /* ── 3D Editor Layout ── */
 function EditorLayout() {
   const nodeCount = useEngineStore(s => Object.keys(s.nodes).length)
@@ -48,7 +67,7 @@ function EditorLayout() {
       state.addNode({
         kind: 'mesh', name: 'Cube', primitive: 'box',
         transform: { position: { x: 0, y: 0.5, z: 0 }, rotation: { x: 0, y: 45, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
-        material: { color: '#a855f7', metalness: 0.3, roughness: 0.4, emissive: '#4c1d95', emissiveIntensity: 0.2, opacity: 1, transparent: false, wireframe: false, preset: 'default' },
+        material: { color: '#06b6d4', metalness: 0.3, roughness: 0.4, emissive: '#164e63', emissiveIntensity: 0.2, opacity: 1, transparent: false, wireframe: false, preset: 'default' },
       })
       state.addNode({
         kind: 'mesh', name: 'Sphere', primitive: 'sphere',
@@ -69,20 +88,30 @@ function EditorLayout() {
     startAutoSave()
   }, [])
 
+  const studioPanelOpen = useStudioStore(s => s.panelOpen)
+  const toggleStudio = useStudioStore(s => s.togglePanel)
+
   return (
     <div className="app-layout">
-      <div className="viewport-container">
-        <Viewport />
-        <ViewportToolbar />
-        <div className="status-bar">
-          <span className="status-item"><span className="status-dot" /> WebGL2</span>
-          <span className="status-item">Objects: {nodeCount}</span>
-          {node && <span className="status-item">Selected: {node.name}</span>}
-          <span className="status-item">{timeline.playing ? `▶ ${timeline.currentTime.toFixed(1)}s` : '⏸ Paused'}</span>
-          <span className="status-item" style={{ marginLeft: 'auto', cursor: 'pointer', opacity: 0.7 }}
-            onClick={() => { resetOnboarding(); window.location.reload() }} title="Replay onboarding tour">
-            ❓ Help
-          </span>
+      <div className="workspace-split">
+        {studioPanelOpen && <StudioPanel />}
+        <div className="viewport-container">
+          <Viewport />
+          <ViewportToolbar />
+          <div className="status-bar">
+            <span className="status-item"><span className="status-dot" /> WebGL2</span>
+            <span className="status-item">Objects: {nodeCount}</span>
+            {node && <span className="status-item">Selected: {node.name}</span>}
+            <span className="status-item">{timeline.playing ? `▶ ${timeline.currentTime.toFixed(1)}s` : '⏸ Paused'}</span>
+            <button className="status-item studio-toggle-btn" onClick={toggleStudio}
+              title={studioPanelOpen ? 'Close Studio IDE' : 'Open Studio IDE'}>
+              {studioPanelOpen ? '◀ IDE' : '▶ IDE'}
+            </button>
+            <span className="status-item" style={{ marginLeft: 'auto', cursor: 'pointer', opacity: 0.7 }}
+              onClick={() => { resetOnboarding(); window.location.reload() }} title="Replay onboarding tour">
+              ❓ Help
+            </span>
+          </div>
         </div>
       </div>
       <Sidebar />
@@ -126,6 +155,17 @@ export default function App() {
         } />
         <Route path="/billing" element={
           <ProtectedRoute><BillingPage /></ProtectedRoute>
+        } />
+        <Route path="/workspace" element={
+          <ProtectedRoute><WorkspacePage /></ProtectedRoute>
+        } />
+        <Route path="/affiliate" element={
+          <ProtectedRoute><AffiliatePage /></ProtectedRoute>
+        } />
+
+        {/* Referral capture route */}
+        <Route path="/ref/:hash" element={
+          <ReferralCapture />
         } />
 
         {/* Default → Explore */}

@@ -1,6 +1,9 @@
 /* ====== TrustGen — Tabbed Sidebar (Properties Inspector) ====== */
 import React, { useState, useCallback, useRef } from 'react'
 import { useEngineStore } from '../store'
+import { useRigStore } from '../stores/rigStore'
+import { RIG_TEMPLATES } from '../types/rigTypes'
+import type { RigTemplateName } from '../types/rigTypes'
 import { SceneHierarchy } from './SceneHierarchy'
 import { AIGenerationPanel } from './AIPanel'
 import { InfoBubble } from './Tooltip'
@@ -241,6 +244,189 @@ function MaterialsTab() {
     )
 }
 
+// ── Rigging Controls ──
+function RiggingControls({ nodeId }: { nodeId: string | null }) {
+    const {
+        active, mode, template, markers, mirrorMode, showBones, showEnvelopes,
+        startRigging, cancelRigging, setTemplate, toggleMirrorMode,
+        toggleShowBones, toggleShowEnvelopes, resetMarkers, setMode,
+    } = useRigStore()
+
+    const placedCount = markers.filter(m => m.placed).length
+    const totalCount = markers.length
+    const progress = totalCount > 0 ? (placedCount / totalCount) * 100 : 0
+
+    if (!nodeId) {
+        return (
+            <div>
+                <div className="empty-hint" style={{ fontSize: 11, marginBottom: 6 }}>
+                    Select a mesh node to begin rigging
+                </div>
+                <div className="rig-tip-box">
+                    <strong>💡 Getting Started</strong>
+                    <ul>
+                        <li>Import a 3D model (GLB/FBX) via the Scene tab</li>
+                        <li>Select the mesh in the hierarchy</li>
+                        <li>Return here to begin placing joints</li>
+                    </ul>
+                </div>
+            </div>
+        )
+    }
+
+    if (!active) {
+        return (
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        Place joint markers on a T-pose model to auto-generate a skeleton with skinning weights.
+                    </span>
+                    <InfoBubble text="Auto-rigging works best with models in T-pose (arms extended). The system places joint markers at body landmarks, then generates a bone hierarchy with automatic weight painting for mesh deformation." />
+                </div>
+                <div className="control-row" style={{ marginBottom: 8 }}>
+                    <span className="control-label">Template</span>
+                    <InfoBubble text="Templates define preset joint positions. Humanoid (23 joints) for characters, Quadruped (18 joints) for animals, Simple (5 joints) for props, or Custom for freeform joint placement." />
+                    <select
+                        value={template}
+                        onChange={e => setTemplate(e.target.value as RigTemplateName)}
+                        style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 11 }}
+                    >
+                        {Object.values(RIG_TEMPLATES).map(t => (
+                            <option key={t.name} value={t.name}>
+                                {t.icon} {t.label} ({t.joints.length} joints)
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="rig-tip-box" style={{ marginBottom: 8 }}>
+                    <strong>📋 Best Practices</strong>
+                    <ul>
+                        <li>Use a <b>T-pose</b> model for best results</li>
+                        <li>Start with joints closest to the center (hips/spine)</li>
+                        <li>Enable <b>Mirror Mode</b> to auto-place symmetric joints</li>
+                        <li>You can adjust marker positions after placing them</li>
+                    </ul>
+                </div>
+
+                <button
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                    onClick={() => startRigging(nodeId, template)}
+                >
+                    🦴 Start Rigging
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div>
+            {/* Progress */}
+            <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        Joints Placed
+                        <InfoBubble text="Click directly on the mesh surface to place each joint marker. Joints are placed sequentially — the highlighted joint in the list is the next one to place. You can also click a joint name to select and reposition it." />
+                    </span>
+                    <span>{placedCount} / {totalCount}</span>
+                </div>
+                <div className="rig-progress-bar">
+                    <div className="rig-progress-fill" style={{ width: `${progress}%` }} />
+                </div>
+            </div>
+
+            {/* Placement tip — shown during placing mode */}
+            {mode === 'placing' && placedCount < 3 && (
+                <div className="rig-tip-box" style={{ marginBottom: 6 }}>
+                    <strong>🎯 Placement Tips</strong>
+                    <ul>
+                        <li>Click directly on the <b>mesh surface</b> where the joint should be</li>
+                        <li>Orbit the camera to get a better angle</li>
+                        <li>The highlighted joint below is the next to place</li>
+                        {mirrorMode && <li>Mirror Mode is ON — left-side joints auto-mirror to right</li>}
+                    </ul>
+                </div>
+            )}
+
+            {/* Joint List */}
+            <div className="rig-joint-list">
+                {markers.map(marker => (
+                    <div
+                        key={marker.id}
+                        className={`rig-joint-item ${marker.placed ? 'placed' : ''} ${useRigStore.getState().activeMarkerId === marker.id ? 'active' : ''}`}
+                    >
+                        <span
+                            className="rig-joint-dot"
+                            style={{ background: marker.placed ? marker.color : 'var(--border)' }}
+                        />
+                        <span className="rig-joint-name">{marker.name}</span>
+                        <span className="rig-joint-type">{marker.type}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Toggles */}
+            <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ToggleRow label="Mirror Mode" value={mirrorMode} onChange={toggleMirrorMode} />
+                    <InfoBubble text="When enabled, placing a left-side joint (e.g. L_Shoulder) automatically places the mirrored right-side joint (R_Shoulder) at the reflected position. Great for symmetric characters." />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ToggleRow label="Show Bones" value={showBones} onChange={toggleShowBones} />
+                    <InfoBubble text="Renders line segments between connected joints in the viewport, showing the bone hierarchy. Useful for verifying the skeleton structure before applying weights." />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ToggleRow label="Show Envelopes" value={showEnvelopes} onChange={toggleShowEnvelopes} />
+                    <InfoBubble text="Visualizes the influence radius around each bone. Vertices within an envelope are weighted to that bone. Wider envelopes = smoother but less precise deformation." />
+                </div>
+            </div>
+
+            {/* Mode status */}
+            <div className="rig-mode-badge" style={{ marginTop: 8 }}>
+                {mode === 'placing' && `🎯 Click on mesh to place: ${markers.find(m => !m.placed)?.name || 'Done'}`}
+                {mode === 'adjusting' && '✋ All joints placed — drag to adjust, then generate'}
+                {mode === 'generating' && '⏳ Generating skeleton...'}
+                {mode === 'complete' && '✅ Rig complete — skeleton applied'}
+            </div>
+
+            {/* Actions with tips */}
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                {placedCount >= 2 && mode !== 'complete' && (
+                    <button
+                        className="btn btn-primary"
+                        style={{ flex: 1, fontSize: 11 }}
+                        onClick={() => setMode('complete')}
+                        title="Builds the bone skeleton from placed markers and computes skinning weights using envelope distance-based painting"
+                    >
+                        ⚡ Generate & Apply
+                    </button>
+                )}
+                <button className="btn" style={{ fontSize: 11 }} onClick={resetMarkers}
+                    title="Clears all placed markers and restarts the placement process from scratch">
+                    ↺ Reset
+                </button>
+                <button className="btn" style={{ fontSize: 11, color: 'var(--danger)' }} onClick={cancelRigging}
+                    title="Exits rigging mode entirely and discards all work">
+                    ✕ Cancel
+                </button>
+            </div>
+
+            {/* Post-generation tips */}
+            {mode === 'complete' && (
+                <div className="rig-tip-box" style={{ marginTop: 8 }}>
+                    <strong>✅ What's Next</strong>
+                    <ul>
+                        <li>Play existing animations in the <b>Skeletal Clips</b> section above</li>
+                        <li>Export the rigged model via the <b>Export tab</b></li>
+                        <li>The skeleton is baked into the GLB file on export</li>
+                    </ul>
+                </div>
+            )}
+        </div>
+    )
+}
+
 // ── Animation Tab ──
 function AnimationTab() {
     const timeline = useEngineStore(s => s.timeline)
@@ -252,9 +438,77 @@ function AnimationTab() {
     const addKeyframe = useEngineStore(s => s.addKeyframe)
     const selectedId = useEngineStore(s => s.editor.selectedNodeId)
     const node = useEngineStore(s => selectedId ? s.nodes[selectedId] : null)
+    const updateNode = useEngineStore(s => s.updateNode)
+
+    const skelAnim = node?.skeletalAnim
 
     return (
         <div className="tab-content">
+            {/* Skeletal Animation Controls */}
+            {skelAnim && skelAnim.clips.length > 0 && (
+                <Accordion title="Skeletal Clips" icon="🦴" defaultOpen>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                            {skelAnim.hasRig ? '✓ Rigged model' : 'Morph animations'} — {skelAnim.clips.length} clip{skelAnim.clips.length > 1 ? 's' : ''}
+                        </span>
+                        <InfoBubble text="Skeletal animations detected in this model. Select a clip, control playback speed, and toggle loop mode." />
+                    </div>
+
+                    {/* Clip Selector */}
+                    <div className="control-row">
+                        <span className="control-label">Active Clip</span>
+                        <select
+                            value={skelAnim.activeClipIndex}
+                            onChange={e => updateNode(node!.id, {
+                                skeletalAnim: { ...skelAnim, activeClipIndex: parseInt(e.target.value) }
+                            })}
+                            style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', color: 'var(--text)', fontSize: 11 }}
+                        >
+                            {skelAnim.clips.map((clip, i) => (
+                                <option key={i} value={i}>
+                                    {clip.name} ({clip.duration.toFixed(1)}s)
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Playback Controls */}
+                    <div className="playback-controls" style={{ marginTop: 6 }}>
+                        <button
+                            className={`glass-btn playback-btn ${skelAnim.playing ? 'active' : ''}`}
+                            onClick={() => updateNode(node!.id, {
+                                skeletalAnim: { ...skelAnim, playing: !skelAnim.playing }
+                            })}
+                            title={skelAnim.playing ? 'Pause' : 'Play'}
+                        >
+                            {skelAnim.playing ? '⏸' : '▶'}
+                        </button>
+                        <button
+                            className={`glass-btn playback-btn ${skelAnim.loop ? 'active' : ''}`}
+                            onClick={() => updateNode(node!.id, {
+                                skeletalAnim: { ...skelAnim, loop: !skelAnim.loop }
+                            })}
+                            title="Toggle Loop"
+                        >🔁</button>
+                    </div>
+
+                    <SliderRow label="Speed" value={skelAnim.speed} min={0.1} max={3} step={0.1}
+                        onChange={v => updateNode(node!.id, {
+                            skeletalAnim: { ...skelAnim, speed: v }
+                        })} unit="×" />
+
+                    <SliderRow label="Crossfade" value={skelAnim.crossfadeDuration} min={0} max={2} step={0.1}
+                        onChange={v => updateNode(node!.id, {
+                            skeletalAnim: { ...skelAnim, crossfadeDuration: v }
+                        })} unit="s" />
+
+                    {/* Clip Info */}
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4, padding: '4px 0' }}>
+                        {skelAnim.clips[skelAnim.activeClipIndex]?.trackCount || 0} tracks · {skelAnim.clips[skelAnim.activeClipIndex]?.duration.toFixed(2) || 0}s
+                    </div>
+                </Accordion>
+            )}
+
             <Accordion title="Playback" icon="▶️" defaultOpen>
                 <div className="playback-controls">
                     <button className="glass-btn playback-btn" onClick={() => setCurrentTime(0)} title="Rewind">⏮</button>
@@ -315,6 +569,11 @@ function AnimationTab() {
                     )}
                 </Accordion>
             )}
+
+            {/* ── Auto-Rigging ── */}
+            <Accordion title="Auto-Rigging" icon="🦴" defaultOpen={false}>
+                <RiggingControls nodeId={selectedId} />
+            </Accordion>
         </div>
     )
 }
@@ -514,6 +773,9 @@ function ParticlePresets() {
 function ExportTab() {
     const exp = useEngineStore(s => s.exportSettings)
     const updateExport = useEngineStore(s => s.updateExport)
+    const [vaultExporting, setVaultExporting] = useState(false)
+    const [vaultResult, setVaultResult] = useState<{ hallmarkId?: string; assetUrl?: string } | null>(null)
+    const [sceneName, setSceneName] = useState('My TrustGen Scene')
 
     const handleExportPNG = () => {
         const canvas = document.querySelector('canvas')
@@ -567,6 +829,39 @@ function ExportTab() {
         input.click()
     }
 
+    const handleVaultExport = async () => {
+        setVaultExporting(true)
+        setVaultResult(null)
+        try {
+            const state = useEngineStore.getState()
+            const sceneData = {
+                version: '1.0',
+                nodes: state.nodes,
+                rootNodeIds: state.rootNodeIds,
+                environment: state.environment,
+                camera: state.camera,
+                postProcessing: state.postProcessing,
+                timeline: state.timeline,
+            }
+            const token = localStorage.getItem('trustgen-auth-token')
+            const res = await fetch('/api/vault/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ sceneName, sceneData, format: 'json' }),
+            })
+            const result = await res.json()
+            if (result.success) {
+                setVaultResult({ hallmarkId: result.hallmarkId, assetUrl: result.assetUrl })
+            } else {
+                alert(result.error || 'Vault export failed')
+            }
+        } catch (err) {
+            alert('Vault export failed — check your SSO connection')
+        } finally {
+            setVaultExporting(false)
+        }
+    }
+
     return (
         <div className="tab-content">
             <Accordion title="Screenshot" icon="📸" defaultOpen>
@@ -586,6 +881,39 @@ function ExportTab() {
                     <button className="btn glass-btn full-width" onClick={handleExportScene}>💾 Save Scene (.json)</button>
                     <button className="btn glass-btn full-width" onClick={handleImportScene}>📂 Load Scene (.json)</button>
                 </div>
+            </Accordion>
+
+            <Accordion title="TrustVault" icon="🔐">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Export to blockchain-verified storage</span>
+                    <InfoBubble text="Exports your scene to TrustVault with automatic hallmark verification. Requires Trust Layer SSO login." />
+                </div>
+                <div className="control-row">
+                    <span className="control-label">Scene Name</span>
+                    <input
+                        type="text"
+                        value={sceneName}
+                        onChange={e => setSceneName(e.target.value)}
+                        placeholder="My Scene"
+                        style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)', fontSize: 11 }}
+                    />
+                </div>
+                <button
+                    className="btn btn-primary full-width"
+                    onClick={handleVaultExport}
+                    disabled={vaultExporting || !sceneName.trim()}
+                    style={{ marginTop: 8 }}
+                >
+                    {vaultExporting ? '⏳ Exporting…' : '🔐 Export to TrustVault'}
+                </button>
+                {vaultResult && (
+                    <div className="vault-result glass-card" style={{ marginTop: 8, padding: 8, fontSize: 10 }}>
+                        <div style={{ color: '#06b6d4' }}>✓ Exported & Hallmarked</div>
+                        <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>
+                            Hallmark: <code style={{ fontSize: 9 }}>{vaultResult.hallmarkId}</code>
+                        </div>
+                    </div>
+                )}
             </Accordion>
         </div>
     )

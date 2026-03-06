@@ -75,8 +75,27 @@ export interface SceneNode {
     light?: LightDef
     particles?: ParticleDef
     modelUrl?: string
+    // Skeletal animation data
+    skeletalAnim?: SkeletalAnimState
     // Runtime ref (not serialized)
     _ref?: Object3D
+}
+
+// ── Skeletal Animation ──
+export interface SkeletalClipInfo {
+    name: string
+    duration: number
+    trackCount: number
+}
+
+export interface SkeletalAnimState {
+    hasRig: boolean
+    clips: SkeletalClipInfo[]
+    activeClipIndex: number
+    playing: boolean
+    speed: number
+    loop: boolean
+    crossfadeDuration: number
 }
 
 // ── Animation ──

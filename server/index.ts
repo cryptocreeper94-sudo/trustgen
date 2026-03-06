@@ -47,8 +47,12 @@ async function initDB() {
             subscription_tier TEXT DEFAULT 'free',
             stripe_customer_id TEXT,
             verification_token TEXT,
+            trust_layer_id TEXT,
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        -- Add trust_layer_id if missing (migration)
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_layer_id TEXT;
 
         CREATE TABLE IF NOT EXISTS projects (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -102,6 +106,120 @@ async function initDB() {
             data JSONB,
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        CREATE TABLE IF NOT EXISTS referral_codes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) UNIQUE,
+            code TEXT UNIQUE NOT NULL,
+            user_hash TEXT UNIQUE NOT NULL,
+            clicks INTEGER DEFAULT 0,
+            signups INTEGER DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS referrals (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            referrer_id UUID REFERENCES users(id),
+            referred_id UUID REFERENCES users(id),
+            referral_code TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            ip_address TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS affiliate_profiles (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) UNIQUE,
+            tier TEXT DEFAULT 'explorer',
+            lifetime_earnings NUMERIC DEFAULT 0,
+            pending_commission NUMERIC DEFAULT 0,
+            total_clicks INTEGER DEFAULT 0,
+            total_signups INTEGER DEFAULT 0,
+            total_conversions INTEGER DEFAULT 0,
+            payout_method TEXT DEFAULT 'sig',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        -- ══════════════════════════════════════
+        --  STUDIO IDE TABLES
+        -- ══════════════════════════════════════
+
+        CREATE TABLE IF NOT EXISTS studio_projects (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id),
+            name TEXT NOT NULL,
+            description TEXT,
+            language TEXT NOT NULL DEFAULT 'javascript',
+            is_public BOOLEAN NOT NULL DEFAULT false,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_files (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            path TEXT NOT NULL,
+            name TEXT NOT NULL,
+            content TEXT NOT NULL DEFAULT '',
+            language TEXT NOT NULL DEFAULT 'plaintext',
+            is_folder BOOLEAN NOT NULL DEFAULT false,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_secrets (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            environment TEXT NOT NULL DEFAULT 'shared',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_configs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            environment TEXT NOT NULL DEFAULT 'shared',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_commits (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            hash TEXT NOT NULL,
+            parent_hash TEXT,
+            message TEXT NOT NULL,
+            author_id UUID REFERENCES users(id),
+            branch TEXT NOT NULL DEFAULT 'main',
+            files_snapshot TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_deployments (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            status TEXT NOT NULL DEFAULT 'pending',
+            url TEXT,
+            custom_domain TEXT,
+            version TEXT NOT NULL DEFAULT '1',
+            commit_hash TEXT,
+            build_logs TEXT DEFAULT '',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS studio_code_stamps (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID REFERENCES studio_projects(id) ON DELETE CASCADE,
+            user_id UUID REFERENCES users(id),
+            commit_hash TEXT,
+            tree_hash TEXT NOT NULL,
+            provenance_id TEXT NOT NULL,
+            tx_hash TEXT NOT NULL,
+            block_number INTEGER NOT NULL,
+            message TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
     `)
     console.log('✅ Database tables initialized')
 }
@@ -126,6 +244,44 @@ function authMiddleware(req: any, res: any, next: any) {
     }
 }
 
+// ── Subscription Tier Gating Middleware ──
+const TIER_LEVELS: Record<string, number> = { free: 0, pro: 1, enterprise: 2 }
+
+/**
+ * Requires user to have at least `minTier` subscription.
+ * Must be used after `authMiddleware` (needs req.userId).
+ *
+ * Usage: app.post('/api/premium', authMiddleware, requireTier('pro'), handler)
+ */
+function requireTier(minTier: 'pro' | 'enterprise') {
+    return async (req: any, res: any, next: any) => {
+        try {
+            const result = await pool.query(
+                'SELECT subscription_tier FROM users WHERE id = $1',
+                [req.userId]
+            )
+            const userTier = result.rows[0]?.subscription_tier || 'free'
+            const userLevel = TIER_LEVELS[userTier] ?? 0
+            const requiredLevel = TIER_LEVELS[minTier] ?? 1
+
+            if (userLevel < requiredLevel) {
+                return res.status(403).json({
+                    error: 'Upgrade required',
+                    message: `This feature requires a ${minTier} subscription. You are currently on the ${userTier} plan.`,
+                    currentTier: userTier,
+                    requiredTier: minTier,
+                    upgradeUrl: '/billing',
+                })
+            }
+            req.subscriptionTier = userTier
+            next()
+        } catch (err) {
+            console.error('Tier check error:', err)
+            res.status(500).json({ error: 'Failed to verify subscription' })
+        }
+    }
+}
+
 function makeToken(userId: string, tenantId: string) {
     return jwt.sign({ userId, tenantId }, JWT_SECRET, { expiresIn: '7d' })
 }
@@ -142,6 +298,7 @@ function userResponse(user: any) {
         phone: user.phone,
         subscriptionTier: user.subscription_tier,
         stripeCustomerId: user.stripe_customer_id,
+        trustLayerId: user.trust_layer_id,
     }
 }
 
@@ -152,6 +309,11 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, name } = req.body
         if (!email || !password || !name) return res.status(400).json({ error: 'Missing fields' })
+
+        // Enforce ecosystem password policy
+        const tl = await import('./trustLayerApi.js')
+        const pwCheck = tl.validateEcosystemPassword(password)
+        if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.message })
 
         const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email])
         if (existing.rows.length > 0) return res.status(409).json({ error: 'Email already registered' })
@@ -164,13 +326,24 @@ app.post('/api/auth/register', async (req, res) => {
         )
         const tenantId = tenant.rows[0].id
 
+        // Generate Trust Layer ID
+        const trustLayerId = tl.generateTrustLayerId()
+
         const hash = await bcrypt.hash(password, 12)
         const user = await pool.query(
-            'INSERT INTO users (email, password_hash, name, tenant_id) VALUES ($1, $2, $3, $4) RETURNING *',
-            [email, hash, name, tenantId]
+            'INSERT INTO users (email, password_hash, name, tenant_id, trust_layer_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [email, hash, name, tenantId, trustLayerId]
         )
 
         const token = makeToken(user.rows[0].id, tenantId)
+
+        // Sync user to ecosystem (non-blocking)
+        tl.syncUserToEcosystem(email, password, name).catch(err =>
+            console.error('Ecosystem sync error (non-critical):', err.message)
+        )
+
+        // Create affiliate profile with referral code
+        await createAffiliateProfile(user.rows[0].id)
 
         // Send welcome email (Resend)
         if (RESEND_API_KEY) {
@@ -193,18 +366,74 @@ app.post('/api/auth/register', async (req, res) => {
     }
 })
 
+// ── Auto-create affiliate profile on registration ──
+async function createAffiliateProfile(userId: string) {
+    try {
+        const hashBytes = crypto.randomBytes(4).toString('hex').toUpperCase()
+        const userHash = `TN-${hashBytes}`
+        const code = `trustgen-${hashBytes.toLowerCase()}`
+
+        await pool.query(
+            'INSERT INTO referral_codes (user_id, code, user_hash) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO NOTHING',
+            [userId, code, userHash]
+        )
+        await pool.query(
+            'INSERT INTO affiliate_profiles (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+            [userId]
+        )
+    } catch (err) {
+        console.error('Affiliate profile creation error (non-critical):', err)
+    }
+}
+
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
-        if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' })
 
-        const user = result.rows[0]
-        const valid = await bcrypt.compare(password, user.password_hash)
-        if (!valid) return res.status(401).json({ error: 'Invalid credentials' })
+        // Local auth first
+        if (result.rows.length > 0) {
+            const user = result.rows[0]
+            const valid = await bcrypt.compare(password, user.password_hash)
+            if (valid) {
+                const token = makeToken(user.id, user.tenant_id)
+                return res.json({ token, user: userResponse(user) })
+            }
+        }
 
-        const token = makeToken(user.id, user.tenant_id)
-        res.json({ token, user: userResponse(user) })
+        // Ecosystem credential fallback — try Trust Layer if local auth fails
+        try {
+            const tl = await import('./trustLayerApi.js')
+            const ecoResult = await tl.verifyEcosystemCredentials(email, password)
+            if (ecoResult.valid) {
+                // User exists in ecosystem — find or auto-provision locally
+                let user = result.rows[0]
+                if (!user) {
+                    // Auto-create local user from ecosystem credentials
+                    const slug = email.split('@')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase()
+                    const tenant = await pool.query(
+                        'INSERT INTO tenants (name, slug) VALUES ($1, $2) RETURNING id',
+                        [ecoResult.displayName + "'s Workspace", slug + '-' + Date.now().toString(36)]
+                    )
+                    const hash = await bcrypt.hash(password, 12)
+                    const newUser = await pool.query(
+                        'INSERT INTO users (email, password_hash, name, tenant_id, trust_layer_id, email_verified) VALUES ($1, $2, $3, $4, $5, true) RETURNING *',
+                        [email, hash, ecoResult.displayName, tenant.rows[0].id, ecoResult.trustLayerId]
+                    )
+                    user = newUser.rows[0]
+                } else {
+                    // User exists locally but password was wrong — update to ecosystem password
+                    const hash = await bcrypt.hash(password, 12)
+                    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id])
+                }
+                const token = makeToken(user.id, user.tenant_id)
+                return res.json({ token, user: userResponse(user) })
+            }
+        } catch (ecoErr: any) {
+            console.log('Ecosystem fallback skipped:', ecoErr.message)
+        }
+
+        res.status(401).json({ error: 'Invalid credentials' })
     } catch (err: any) {
         console.error('Login error:', err)
         res.status(500).json({ error: 'Login failed' })
@@ -218,6 +447,38 @@ app.get('/api/auth/me', authMiddleware, async (req: any, res) => {
         res.json({ user: userResponse(result.rows[0]) })
     } catch (err: any) {
         res.status(500).json({ error: 'Failed to get user' })
+    }
+})
+
+// ── Password Change with Ecosystem Sync ──
+app.post('/api/auth/change-password', authMiddleware, async (req: any, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body
+        if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Missing fields' })
+
+        const tl = await import('./trustLayerApi.js')
+        const pwCheck = tl.validateEcosystemPassword(newPassword)
+        if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.message })
+
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId])
+        if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found' })
+
+        const user = userResult.rows[0]
+        const valid = await bcrypt.compare(currentPassword, user.password_hash)
+        if (!valid) return res.status(401).json({ error: 'Current password is incorrect' })
+
+        const hash = await bcrypt.hash(newPassword, 12)
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.userId])
+
+        // Sync password change to ecosystem (non-blocking)
+        tl.syncPasswordChange(user.email, newPassword).catch(err =>
+            console.error('Ecosystem password sync error (non-critical):', err.message)
+        )
+
+        res.json({ success: true })
+    } catch (err: any) {
+        console.error('Password change error:', err)
+        res.status(500).json({ error: 'Password change failed' })
     }
 })
 
@@ -802,6 +1063,224 @@ app.get('/api/network/stats', async (_req, res) => {
 })
 
 // ════════════════════════════════
+//  TRUSTVAULT — ASSET STORAGE
+// ════════════════════════════════
+
+// Export scene to TrustVault (auto-hallmark)
+app.post('/api/vault/export', authMiddleware, async (req: any, res) => {
+    try {
+        const { sceneName, sceneData, format } = req.body
+        if (!sceneName || !sceneData) return res.status(400).json({ error: 'Missing scene data' })
+
+        const user = (await pool.query('SELECT * FROM users WHERE id = $1', [req.userId])).rows[0]
+        if (!user?.verification_token) return res.status(401).json({ error: 'SSO token required — sign in via Trust Layer' })
+
+        const tl = await import('./trustLayerApi.js')
+        const ecosystemToken = user.verification_token
+
+        // 1. Get presigned upload URL
+        const filename = `${sceneName.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.${format || 'json'}`
+        const presigned = await tl.getPresignedUploadUrl(ecosystemToken, filename, 'application/json')
+
+        // 2. Upload scene data
+        const blob = JSON.stringify(sceneData)
+        await fetch(presigned.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: blob,
+        })
+
+        // 3. Generate hallmark
+        const hallmarkResult = await tl.hallmarkCreation(sceneName, req.userId, {
+            modelType: '3d-scene',
+            format: format || 'json',
+            creator: user.email,
+        })
+
+        // Store hallmark locally
+        await pool.query(
+            `INSERT INTO hallmarks (user_id, hallmark_id, hallmark_type, product_name, metadata)
+             VALUES ($1, $2, 'creation', $3, $4)`,
+            [req.userId, hallmarkResult.hallmark.hallmarkId, sceneName, JSON.stringify(hallmarkResult.hallmark)]
+        )
+
+        // 4. Register asset in vault
+        const asset = await tl.registerVaultAsset(ecosystemToken, presigned.assetId, {
+            name: sceneName,
+            type: '3d-scene',
+            size: blob.length,
+            hallmarkId: hallmarkResult.hallmark.hallmarkId,
+            format: format || 'json',
+        })
+
+        res.json({
+            success: true,
+            assetUrl: presigned.publicUrl,
+            hallmarkId: hallmarkResult.hallmark.hallmarkId,
+            asset: asset.asset,
+        })
+    } catch (err: any) {
+        console.error('Vault export error:', err)
+        res.status(500).json({ error: 'Vault export failed' })
+    }
+})
+
+// List user's vault assets
+app.get('/api/vault/assets', authMiddleware, async (req: any, res) => {
+    try {
+        const user = (await pool.query('SELECT verification_token FROM users WHERE id = $1', [req.userId])).rows[0]
+        if (!user?.verification_token) return res.status(401).json({ error: 'SSO token required' })
+
+        const tl = await import('./trustLayerApi.js')
+        const result = await tl.getVaultAssets(user.verification_token)
+        res.json(result)
+    } catch (err: any) {
+        res.status(500).json({ error: 'Failed to list vault assets' })
+    }
+})
+
+// ════════════════════════════════
+//  REFERRAL / AFFILIATE PROGRAM
+// ════════════════════════════════
+
+// 1. Record a referral signup
+app.post('/api/referrals/signup', authMiddleware, async (req: any, res) => {
+    try {
+        const { referralCode } = req.body
+        if (!referralCode) return res.status(400).json({ error: 'Missing referral code' })
+
+        // Find referrer
+        const codeResult = await pool.query('SELECT * FROM referral_codes WHERE code = $1', [referralCode])
+        if (codeResult.rows.length === 0) return res.status(404).json({ error: 'Invalid referral code' })
+
+        const referrerId = codeResult.rows[0].user_id
+
+        // Fraud: self-referral check
+        if (referrerId === req.userId) return res.status(400).json({ error: 'Cannot refer yourself' })
+
+        // Fraud: duplicate check
+        const dup = await pool.query(
+            'SELECT id FROM referrals WHERE referrer_id = $1 AND referred_id = $2',
+            [referrerId, req.userId]
+        )
+        if (dup.rows.length > 0) return res.status(409).json({ error: 'Referral already recorded' })
+
+        await pool.query(
+            'INSERT INTO referrals (referrer_id, referred_id, referral_code, status, ip_address) VALUES ($1, $2, $3, $4, $5)',
+            [referrerId, req.userId, referralCode, 'completed', req.ip]
+        )
+
+        // Update counters
+        await pool.query('UPDATE referral_codes SET signups = signups + 1 WHERE code = $1', [referralCode])
+        await pool.query(
+            'UPDATE affiliate_profiles SET total_signups = total_signups + 1 WHERE user_id = $1',
+            [referrerId]
+        )
+
+        res.json({ success: true })
+    } catch (err: any) {
+        console.error('Referral signup error:', err)
+        res.status(500).json({ error: 'Failed to record referral' })
+    }
+})
+
+// 2. Track a referral link click
+app.post('/api/referrals/track-click', async (req, res) => {
+    try {
+        const { code } = req.body
+        if (!code) return res.status(400).json({ error: 'Missing code' })
+
+        await pool.query('UPDATE referral_codes SET clicks = clicks + 1 WHERE code = $1', [code])
+        const codeRow = await pool.query('SELECT user_id FROM referral_codes WHERE code = $1', [code])
+        if (codeRow.rows.length > 0) {
+            await pool.query(
+                'UPDATE affiliate_profiles SET total_clicks = total_clicks + 1 WHERE user_id = $1',
+                [codeRow.rows[0].user_id]
+            )
+        }
+
+        res.json({ success: true })
+    } catch (err: any) {
+        res.status(500).json({ error: 'Failed to track click' })
+    }
+})
+
+// 3. Get user's referral code + stats
+app.get('/api/referrals/code', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM referral_codes WHERE user_id = $1', [req.userId])
+        if (result.rows.length === 0) {
+            // Auto-create if missing
+            await createAffiliateProfile(req.userId)
+            const retry = await pool.query('SELECT * FROM referral_codes WHERE user_id = $1', [req.userId])
+            return res.json(retry.rows[0] || { error: 'No referral code found' })
+        }
+        res.json(result.rows[0])
+    } catch (err: any) {
+        res.status(500).json({ error: 'Failed to get referral code' })
+    }
+})
+
+// 4. Full affiliate dashboard stats
+app.get('/api/referrals/stats', authMiddleware, async (req: any, res) => {
+    try {
+        const profile = await pool.query('SELECT * FROM affiliate_profiles WHERE user_id = $1', [req.userId])
+        const code = await pool.query('SELECT * FROM referral_codes WHERE user_id = $1', [req.userId])
+        const recentReferrals = await pool.query(
+            `SELECT r.*, u.email AS referred_email, u.name AS referred_name
+             FROM referrals r
+             LEFT JOIN users u ON r.referred_id = u.id
+             WHERE r.referrer_id = $1
+             ORDER BY r.created_at DESC LIMIT 20`,
+            [req.userId]
+        )
+
+        // Tier calculation
+        const totalSignups = profile.rows[0]?.total_signups || 0
+        let tier = 'explorer'
+        if (totalSignups >= 50) tier = 'oracle'
+        else if (totalSignups >= 20) tier = 'architect'
+        else if (totalSignups >= 5) tier = 'builder'
+
+        // Commission rates by tier
+        const commissionRates: Record<string, number> = {
+            explorer: 0.05, builder: 0.08, architect: 0.12, oracle: 0.18,
+        }
+
+        res.json({
+            profile: profile.rows[0] || { tier: 'explorer' },
+            code: code.rows[0] || null,
+            recentReferrals: recentReferrals.rows,
+            tier,
+            commissionRate: commissionRates[tier],
+            nextTier: tier === 'explorer' ? 'builder' : tier === 'builder' ? 'architect' : tier === 'architect' ? 'oracle' : null,
+            nextTierThreshold: tier === 'explorer' ? 5 : tier === 'builder' ? 20 : tier === 'architect' ? 50 : 0,
+        })
+    } catch (err: any) {
+        console.error('Affiliate stats error:', err)
+        res.status(500).json({ error: 'Failed to get affiliate stats' })
+    }
+})
+
+// 5. Cross-platform affiliate lookup by hash
+app.get('/api/affiliates/lookup/:hash', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT rc.user_hash, rc.code, ap.tier, u.name
+             FROM referral_codes rc
+             JOIN affiliate_profiles ap ON rc.user_id = ap.user_id
+             JOIN users u ON rc.user_id = u.id
+             WHERE rc.user_hash = $1`,
+            [req.params.hash]
+        )
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Affiliate not found' })
+        res.json(result.rows[0])
+    } catch (err: any) {
+        res.status(500).json({ error: 'Affiliate lookup failed' })
+    }
+})
+
+// ════════════════════════════════
 //  HEALTH CHECK
 // ════════════════════════════════
 app.get('/api/health', async (_req, res) => {
@@ -962,6 +1441,406 @@ app.delete('/api/blog/:id', async (req, res) => {
         res.status(500).json({ error: err.message })
     }
 })
+
+// ════════════════════════════════
+//  STUDIO IDE API
+// ════════════════════════════════
+
+// ── Studio: Project CRUD ──
+app.get('/api/studio/projects', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM studio_projects WHERE user_id = $1 ORDER BY updated_at DESC',
+            [req.userId]
+        )
+        res.json(result.rows)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.post('/api/studio/projects', authMiddleware, async (req: any, res) => {
+    try {
+        const { name, description, language } = req.body
+        if (!name) return res.status(400).json({ error: 'Name required' })
+        const result = await pool.query(
+            `INSERT INTO studio_projects (user_id, name, description, language) VALUES ($1, $2, $3, $4) RETURNING *`,
+            [req.userId, name, description || '', language || 'javascript']
+        )
+        const project = result.rows[0]
+
+        // Template-specific starter files
+        const files: { name: string; path: string; content: string; lang: string }[] = []
+        const lang = language || 'javascript'
+
+        if (lang === 'python') {
+            files.push({ name: 'main.py', path: '/main.py', lang: 'python', content: '"""TrustGen Studio Project"""\nfrom flask import Flask, jsonify\n\napp = Flask(__name__)\n\n@app.route("/")\ndef index():\n    return jsonify({"message": "Hello from TrustGen!"})\n\nif __name__ == "__main__":\n    app.run(debug=True, port=3000)\n' })
+            files.push({ name: 'requirements.txt', path: '/requirements.txt', lang: 'plaintext', content: 'flask>=3.0\ngunicorn>=21.2\n' })
+        } else if (lang === 'go') {
+            files.push({ name: 'main.go', path: '/main.go', lang: 'go', content: 'package main\n\nimport (\n\t"fmt"\n\t"net/http"\n)\n\nfunc main() {\n\thttp.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {\n\t\tfmt.Fprintf(w, "Hello from TrustGen!")\n\t})\n\tfmt.Println("Server running on :3000")\n\thttp.ListenAndServe(":3000", nil)\n}\n' })
+            files.push({ name: 'go.mod', path: '/go.mod', lang: 'go', content: 'module trustgen-project\n\ngo 1.21\n' })
+        } else if (lang === 'rust') {
+            files.push({ name: 'main.rs', path: '/src/main.rs', lang: 'rust', content: 'use actix_web::{web, App, HttpServer, Responder};\n\nasync fn index() -> impl Responder {\n    "Hello from TrustGen!"\n}\n\n#[actix_web::main]\nasync fn main() -> std::io::Result<()> {\n    HttpServer::new(|| App::new().route("/", web::get().to(index)))\n        .bind("0.0.0.0:3000")?\n        .run()\n        .await\n}\n' })
+            files.push({ name: 'Cargo.toml', path: '/Cargo.toml', lang: 'toml', content: '[package]\nname = "trustgen-project"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nactix-web = "4"\ntokio = { version = "1", features = ["full"] }\n' })
+        } else {
+            // JavaScript / TypeScript templates
+            const ext = lang === 'typescript' ? 'tsx' : 'js'
+            const isReactish = ['react', 'nextjs', 'vue'].some(k => name.toLowerCase().includes(k)) || lang === 'typescript'
+
+            if (isReactish) {
+                files.push({ name: `App.${ext}`, path: `/App.${ext}`, lang: lang, content: `// TrustGen Studio — ${name}\nimport { useState } from 'react'\n\nexport default function App() {\n  const [count, setCount] = useState(0)\n\n  return (\n    <div style={{ padding: 40, fontFamily: 'Inter, sans-serif', color: '#e2e8f0', background: '#0a0a10', minHeight: '100vh' }}>\n      <h1 style={{ color: '#22d3ee', fontSize: 36 }}>${name}</h1>\n      <p style={{ color: '#94a3b8' }}>Built with TrustGen Studio</p>\n      <button\n        onClick={() => setCount(c => c + 1)}\n        style={{ padding: '10px 24px', background: '#06b6d4', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 16 }}\n      >\n        Count: {count}\n      </button>\n    </div>\n  )\n}\n` })
+                files.push({ name: 'index.css', path: '/index.css', lang: 'css', content: `/* ${name} — Styles */\n* { margin: 0; padding: 0; box-sizing: border-box; }\nbody { background: #0a0a10; color: #e2e8f0; font-family: 'Inter', sans-serif; }\n` })
+            } else {
+                files.push({ name: `index.${ext === 'tsx' ? 'ts' : 'js'}`, path: `/index.${ext === 'tsx' ? 'ts' : 'js'}`, lang: lang, content: `// TrustGen Studio — ${name}\nconst express = require('express');\nconst app = express();\n\napp.get('/', (req, res) => {\n  res.json({ message: 'Hello from TrustGen!' });\n});\n\napp.listen(3000, () => console.log('Server running on :3000'));\n` })
+            }
+            files.push({ name: 'package.json', path: '/package.json', lang: 'json', content: `{\n  "name": "${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  }\n}\n` })
+        }
+
+        // Special: TrustGen 3D Scene template
+        if (name.toLowerCase().includes('3d') || name.toLowerCase().includes('scene') || name.toLowerCase().includes('trustgen')) {
+            files.length = 0 // clear defaults
+            files.push({ name: 'Scene.tsx', path: '/Scene.tsx', lang: 'typescript', content: `// TrustGen 3D Scene — ${name}\nimport { useRef } from 'react'\nimport { useFrame } from '@react-three/fiber'\nimport { MeshTransmissionMaterial, Environment, Float } from '@react-three/drei'\nimport * as THREE from 'three'\n\nexport function Scene() {\n  const meshRef = useRef<THREE.Mesh>(null)\n\n  useFrame((state) => {\n    if (!meshRef.current) return\n    meshRef.current.rotation.y = state.clock.elapsedTime * 0.3\n    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.2) * 0.2\n  })\n\n  return (\n    <>\n      <Environment preset="city" />\n      <ambientLight intensity={0.4} />\n      <directionalLight position={[5, 5, 5]} intensity={1.2} castShadow />\n      <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.5}>\n        <mesh ref={meshRef} castShadow>\n          <torusKnotGeometry args={[1, 0.35, 128, 16]} />\n          <MeshTransmissionMaterial\n            backside\n            samples={8}\n            thickness={0.3}\n            chromaticAberration={0.2}\n            anisotropy={0.3}\n            distortion={0.5}\n            roughness={0.1}\n            color="#22d3ee"\n          />\n        </mesh>\n      </Float>\n      <mesh receiveShadow rotation-x={-Math.PI / 2} position-y={-2}>\n        <planeGeometry args={[20, 20]} />\n        <shadowMaterial opacity={0.3} />\n      </mesh>\n    </>\n  )\n}\n` })
+            files.push({ name: 'PostFX.tsx', path: '/PostFX.tsx', lang: 'typescript', content: `// Post-processing effects\nimport { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'\n\nexport function PostFX() {\n  return (\n    <EffectComposer>\n      <Bloom luminanceThreshold={0.8} luminanceSmoothing={0.9} intensity={0.6} />\n      <ChromaticAberration offset={[0.001, 0.001]} />\n    </EffectComposer>\n  )\n}\n` })
+            files.push({ name: 'shader.glsl', path: '/shader.glsl', lang: 'glsl', content: `// Custom shader — TrustGen Studio\nprecision mediump float;\nuniform float u_time;\nuniform vec2 u_resolution;\n\nvoid main() {\n  vec2 uv = gl_FragCoord.xy / u_resolution;\n  vec3 color = 0.5 + 0.5 * cos(u_time + uv.xyx + vec3(0.0, 2.0, 4.0));\n  gl_FragColor = vec4(color * 0.8, 1.0);\n}\n` })
+        }
+
+        // Insert all files
+        for (const f of files) {
+            await pool.query(
+                'INSERT INTO studio_files (project_id, path, name, content, language) VALUES ($1, $2, $3, $4, $5)',
+                [project.id, f.path, f.name, f.content, f.lang]
+            )
+        }
+
+        res.status(201).json(project)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/studio/projects/:id', authMiddleware, async (req: any, res) => {
+    try {
+        const project = await pool.query('SELECT * FROM studio_projects WHERE id = $1', [req.params.id])
+        if (project.rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        const files = await pool.query('SELECT * FROM studio_files WHERE project_id = $1 ORDER BY is_folder DESC, name', [req.params.id])
+        const secrets = await pool.query('SELECT id, key, environment, created_at FROM studio_secrets WHERE project_id = $1', [req.params.id])
+        const configs = await pool.query('SELECT * FROM studio_configs WHERE project_id = $1', [req.params.id])
+        res.json({ ...project.rows[0], files: files.rows, secrets: secrets.rows, configs: configs.rows })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.patch('/api/studio/projects/:id', authMiddleware, async (req: any, res) => {
+    try {
+        const { name, description, language, is_public } = req.body
+        const result = await pool.query(
+            `UPDATE studio_projects SET name = COALESCE($1, name), description = COALESCE($2, description),
+             language = COALESCE($3, language), is_public = COALESCE($4, is_public), updated_at = NOW()
+             WHERE id = $5 AND user_id = $6 RETURNING *`,
+            [name, description, language, is_public, req.params.id, req.userId]
+        )
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        res.json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.delete('/api/studio/projects/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM studio_projects WHERE id = $1 AND user_id = $2', [req.params.id, req.userId])
+        res.json({ ok: true })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: File CRUD ──
+app.post('/api/studio/projects/:id/files', authMiddleware, async (req: any, res) => {
+    try {
+        const { path, name, content, language, is_folder } = req.body
+        if (!name) return res.status(400).json({ error: 'Name required' })
+        const lang = language || getLanguageFromExt(name)
+        const result = await pool.query(
+            `INSERT INTO studio_files (project_id, path, name, content, language, is_folder)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [req.params.id, path || '/' + name, name, content || '', lang, is_folder || false]
+        )
+        await pool.query('UPDATE studio_projects SET updated_at = NOW() WHERE id = $1', [req.params.id])
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.patch('/api/studio/files/:id', authMiddleware, async (req: any, res) => {
+    try {
+        const { content, name, path } = req.body
+        const result = await pool.query(
+            `UPDATE studio_files SET content = COALESCE($1, content), name = COALESCE($2, name),
+             path = COALESCE($3, path), updated_at = NOW() WHERE id = $4 RETURNING *`,
+            [content, name, path, req.params.id]
+        )
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        // Touch the project's updated_at
+        if (result.rows[0].project_id) {
+            await pool.query('UPDATE studio_projects SET updated_at = NOW() WHERE id = $1', [result.rows[0].project_id])
+        }
+        res.json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.delete('/api/studio/files/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM studio_files WHERE id = $1', [req.params.id])
+        res.json({ ok: true })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Secrets ──
+app.post('/api/studio/projects/:id/secrets', authMiddleware, async (req: any, res) => {
+    try {
+        const { key, value, environment } = req.body
+        if (!key || !value) return res.status(400).json({ error: 'Key and value required' })
+        const result = await pool.query(
+            'INSERT INTO studio_secrets (project_id, key, value, environment) VALUES ($1, $2, $3, $4) RETURNING id, key, environment, created_at',
+            [req.params.id, key, value, environment || 'shared']
+        )
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.delete('/api/studio/secrets/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM studio_secrets WHERE id = $1', [req.params.id])
+        res.json({ ok: true })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Configs ──
+app.post('/api/studio/projects/:id/configs', authMiddleware, async (req: any, res) => {
+    try {
+        const { key, value, environment } = req.body
+        if (!key) return res.status(400).json({ error: 'Key required' })
+        const result = await pool.query(
+            'INSERT INTO studio_configs (project_id, key, value, environment) VALUES ($1, $2, $3, $4) RETURNING *',
+            [req.params.id, key, value || '', environment || 'shared']
+        )
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.delete('/api/studio/configs/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM studio_configs WHERE id = $1', [req.params.id])
+        res.json({ ok: true })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Version Control ──
+app.get('/api/studio/projects/:id/commits', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, hash, parent_hash, message, branch, author_id, created_at FROM studio_commits WHERE project_id = $1 ORDER BY created_at DESC LIMIT 50',
+            [req.params.id]
+        )
+        res.json(result.rows)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.post('/api/studio/projects/:id/commits', authMiddleware, async (req: any, res) => {
+    try {
+        const { message, branch } = req.body
+        if (!message) return res.status(400).json({ error: 'Commit message required' })
+        // Snapshot all files
+        const files = await pool.query('SELECT path, name, content, language, is_folder FROM studio_files WHERE project_id = $1', [req.params.id])
+        const snapshot = JSON.stringify(files.rows)
+        const hash = crypto.createHash('sha256').update(snapshot + Date.now()).digest('hex').slice(0, 12)
+        // Get parent hash
+        const latestCommit = await pool.query(
+            'SELECT hash FROM studio_commits WHERE project_id = $1 AND branch = $2 ORDER BY created_at DESC LIMIT 1',
+            [req.params.id, branch || 'main']
+        )
+        const parentHash = latestCommit.rows[0]?.hash || null
+        const result = await pool.query(
+            `INSERT INTO studio_commits (project_id, hash, parent_hash, message, author_id, branch, files_snapshot)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [req.params.id, hash, parentHash, message, req.userId, branch || 'main', snapshot]
+        )
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.post('/api/studio/commits/:id/checkout', authMiddleware, async (req: any, res) => {
+    try {
+        const commit = await pool.query('SELECT * FROM studio_commits WHERE id = $1', [req.params.id])
+        if (commit.rows.length === 0) return res.status(404).json({ error: 'Commit not found' })
+        const files = JSON.parse(commit.rows[0].files_snapshot)
+        const projectId = commit.rows[0].project_id
+        // Delete current files and restore from snapshot
+        await pool.query('DELETE FROM studio_files WHERE project_id = $1', [projectId])
+        for (const file of files) {
+            await pool.query(
+                'INSERT INTO studio_files (project_id, path, name, content, language, is_folder) VALUES ($1, $2, $3, $4, $5, $6)',
+                [projectId, file.path, file.name, file.content, file.language, file.is_folder]
+            )
+        }
+        res.json({ ok: true, restoredFiles: files.length })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Terminal (sandboxed) ──
+const BLOCKED_COMMANDS = ['rm -rf /', 'mkfs', 'dd if=', ':(){', 'fork', 'shutdown', 'reboot']
+
+app.post('/api/studio/projects/:id/terminal', authMiddleware, requireTier('pro'), async (req: any, res) => {
+    try {
+        const { command } = req.body
+        if (!command) return res.status(400).json({ error: 'Command required' })
+        // Check blocked commands
+        const isBlocked = BLOCKED_COMMANDS.some(bc => command.toLowerCase().includes(bc))
+        if (isBlocked) return res.status(403).json({ error: 'Command blocked for security' })
+        // Simulate terminal output (sandboxed — no real shell execution in this environment)
+        const output = `$ ${command}\n[TrustGen Studio] Command queued. Real shell execution available in deployed environments.`
+        res.json({ output, exitCode: 0 })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Lint / Diagnostics ──
+app.post('/api/studio/lint', authMiddleware, async (req: any, res) => {
+    try {
+        const { code, filename } = req.body
+        if (!code) return res.json({ diagnostics: [], summary: { errors: 0, warnings: 0, info: 0 } })
+        const diagnostics: any[] = []
+        const lines = code.split('\n')
+        lines.forEach((line: string, i: number) => {
+            if (line.includes('var ')) diagnostics.push({ line: i + 1, severity: 'warning', message: 'Use let/const instead of var', source: 'lint' })
+            if (line.includes('console.log')) diagnostics.push({ line: i + 1, severity: 'info', message: 'console.log statement', source: 'lint' })
+            if (/[^=!]==[^=]/.test(line)) diagnostics.push({ line: i + 1, severity: 'warning', message: 'Use === instead of ==', source: 'lint' })
+            if (/TODO|FIXME|HACK/.test(line)) diagnostics.push({ line: i + 1, severity: 'info', message: 'Contains TODO/FIXME marker', source: 'lint' })
+            if (line.length > 120) diagnostics.push({ line: i + 1, severity: 'info', message: `Line exceeds 120 characters (${line.length})`, source: 'lint' })
+            if (line.includes('eval(')) diagnostics.push({ line: i + 1, severity: 'error', message: 'eval() is a security risk', source: 'lint' })
+        })
+        const summary = {
+            errors: diagnostics.filter(d => d.severity === 'error').length,
+            warnings: diagnostics.filter(d => d.severity === 'warning').length,
+            info: diagnostics.filter(d => d.severity === 'info').length,
+        }
+        res.json({ diagnostics, summary })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: AI Chat ──
+app.post('/api/studio/ai/chat', authMiddleware, async (req: any, res) => {
+    try {
+        const { prompt, agentMode, currentFile, projectFiles } = req.body
+        if (!prompt) return res.status(400).json({ error: 'Prompt required' })
+
+        // Try OpenAI if key is set
+        const openaiKey = process.env.OPENAI_API_KEY
+        if (openaiKey) {
+            try {
+                const systemPrompt = agentMode
+                    ? `You are TrustGen Studio Agent — an autonomous code assistant. You can read the user's current file and suggest precise edits. Always wrap code in fenced code blocks with language tags. Be concise and actionable.${currentFile ? `\n\nUser's current file: ${currentFile.name} (${currentFile.language})\nContent:\n${currentFile.content}` : ''}`
+                    : `You are TrustGen Studio AI — a helpful coding assistant. Answer questions, generate code, and help debug. Always wrap code in fenced code blocks with language tags. Be concise.`
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: prompt },
+                        ],
+                        max_tokens: 2000,
+                        temperature: 0.7,
+                    }),
+                })
+                const data: any = await response.json()
+                const content = data.choices?.[0]?.message?.content || 'No response generated.'
+                return res.json({ content })
+            } catch {
+                // Fall through to fallback
+            }
+        }
+
+        // Fallback: context-aware response
+        const lower = prompt.toLowerCase()
+        let content = ''
+        if (lower.includes('component') || lower.includes('react')) {
+            content = "Here's a starter component:\n\n```typescript\nimport { useState } from 'react'\n\nexport function MyComponent() {\n  const [count, setCount] = useState(0)\n  return (\n    <div>\n      <h2>My Component</h2>\n      <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>\n    </div>\n  )\n}\n```\n\nWould you like me to customize this further?"
+        } else if (lower.includes('three') || lower.includes('3d') || lower.includes('scene')) {
+            content = "Here's a Three.js scene:\n\n```typescript\nimport * as THREE from 'three'\n\nconst scene = new THREE.Scene()\nconst camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight)\nconst renderer = new THREE.WebGLRenderer({ antialias: true })\n\nconst mesh = new THREE.Mesh(\n  new THREE.BoxGeometry(1,1,1),\n  new THREE.MeshStandardMaterial({ color: 0x06b6d4, metalness: 0.5 })\n)\nscene.add(mesh)\n```"
+        } else if (lower.includes('shader') || lower.includes('glsl')) {
+            content = "Here's a GLSL fragment shader:\n\n```glsl\nprecision mediump float;\nuniform float u_time;\nuniform vec2 u_resolution;\n\nvoid main() {\n  vec2 uv = gl_FragCoord.xy / u_resolution;\n  vec3 col = 0.5 + 0.5*cos(u_time+uv.xyx+vec3(0,2,4));\n  gl_FragColor = vec4(col, 1.0);\n}\n```"
+        } else {
+            content = `I can help with that! ${agentMode ? 'Agent mode is active — I can read your current file context.' : ''}\n\nTo get the best results, try:\n- "Write a React component for..."\n- "Debug this error: ..."\n- "Generate a Three.js scene"\n\n> **Note**: Connect your OpenAI API key in Settings for full AI capabilities.`
+        }
+        res.json({ content })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Deployments ──
+app.post('/api/studio/projects/:id/deploy', authMiddleware, requireTier('pro'), async (req: any, res) => {
+    try {
+        const project = await pool.query('SELECT name FROM studio_projects WHERE id = $1', [req.params.id])
+        if (project.rows.length === 0) return res.status(404).json({ error: 'Project not found' })
+        const slug = project.rows[0].name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+        const url = `https://${slug}.trustgen.app`
+        const result = await pool.query(
+            `INSERT INTO studio_deployments (project_id, status, url, version) VALUES ($1, 'building', $2, $3) RETURNING *`,
+            [req.params.id, url, Date.now().toString(36)]
+        )
+        // Simulate build completing after 3 seconds
+        const deployId = result.rows[0].id
+        setTimeout(async () => {
+            await pool.query(`UPDATE studio_deployments SET status = 'live', build_logs = 'Build completed successfully.' WHERE id = $1`, [deployId])
+        }, 3000)
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/studio/projects/:id/deployments', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM studio_deployments WHERE project_id = $1 ORDER BY created_at DESC', [req.params.id])
+        res.json(result.rows)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: TrustHub Code Stamps ──
+app.post('/api/studio/trusthub/stamp', authMiddleware, async (req: any, res) => {
+    try {
+        const { projectId, message, commitHash } = req.body
+        if (!projectId) return res.status(400).json({ error: 'projectId required' })
+        // Build Merkle-style tree hash from all project files
+        const files = await pool.query('SELECT name, content FROM studio_files WHERE project_id = $1 AND is_folder = false', [projectId])
+        const fileTree = files.rows
+            .map((f: any) => `${f.name}:${crypto.createHash('sha256').update(f.content || '').digest('hex')}`)
+            .sort()
+            .join('\n')
+        const treeHash = crypto.createHash('sha256').update(fileTree).digest('hex')
+        const txHash = '0x' + crypto.createHash('sha256').update(`${treeHash}-${Date.now()}-${req.userId}`).digest('hex')
+        const provenanceId = `prov-${crypto.randomBytes(8).toString('hex')}`
+        const result = await pool.query(
+            `INSERT INTO studio_code_stamps (project_id, user_id, commit_hash, tree_hash, provenance_id, tx_hash, block_number, message)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [projectId, req.userId, commitHash || null, treeHash, provenanceId, txHash, Math.floor(Date.now() / 400), message || 'Code stamp']
+        )
+        res.status(201).json(result.rows[0])
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/studio/trusthub/stamps/:projectId', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM studio_code_stamps WHERE project_id = $1 ORDER BY created_at DESC LIMIT 50',
+            [req.params.projectId]
+        )
+        res.json(result.rows)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ── Studio: Language detection helper ──
+function getLanguageFromExt(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase() || ''
+    const map: Record<string, string> = {
+        js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+        py: 'python', rb: 'ruby', go: 'go', rs: 'rust', java: 'java',
+        html: 'html', css: 'css', json: 'json', md: 'markdown',
+        glsl: 'glsl', wgsl: 'wgsl', yml: 'yaml', yaml: 'yaml',
+        sh: 'shell', toml: 'toml', xml: 'xml', sql: 'sql',
+    }
+    return map[ext] || 'plaintext'
+}
 
 // ════════════════════════════════
 //  BOOT

@@ -65,6 +65,51 @@ async function bearerRequest<T = any>(method: string, path: string, ecosystemTok
 }
 
 // ════════════════════════════════════
+//  ECOSYSTEM CREDENTIAL SYNC
+// ════════════════════════════════════
+
+/** Sync a newly registered user to the Trust Layer ecosystem so all apps share credentials */
+export async function syncUserToEcosystem(
+    email: string, password: string, displayName: string, username?: string
+): Promise<{ success: boolean; trustLayerId: string; ecosystemSynced: boolean }> {
+    return hmacRequest('POST', '/api/ecosystem/sync-user', {
+        email, password, displayName, username: username || email.split('@')[0],
+        sourceApp: 'trustgen',
+    })
+}
+
+/** Verify credentials against the ecosystem — used as login fallback when local auth fails */
+export async function verifyEcosystemCredentials(
+    email: string, password: string
+): Promise<{ valid: boolean; userId: string; displayName: string; trustLayerId: string }> {
+    return hmacRequest('POST', '/api/ecosystem/verify-credentials', {
+        email, password, sourceApp: 'trustgen',
+    })
+}
+
+/** Propagate a password change to the ecosystem so all apps stay in sync */
+export async function syncPasswordChange(email: string, newPassword: string): Promise<{ success: boolean }> {
+    return hmacRequest('POST', '/api/ecosystem/sync-password', {
+        email, newPassword, sourceApp: 'trustgen',
+    })
+}
+
+/** Generate a Trust Layer ID for a new user */
+export function generateTrustLayerId(): string {
+    const ts = Date.now().toString(36)
+    const rand = crypto.randomBytes(4).toString('hex')
+    return `tl-${ts}-${rand}`
+}
+
+/** Validate ecosystem password policy: 8+ chars, 1 uppercase, 1 special char */
+export function validateEcosystemPassword(password: string): { valid: boolean; message?: string } {
+    if (password.length < 8) return { valid: false, message: 'Password must be at least 8 characters' }
+    if (!/[A-Z]/.test(password)) return { valid: false, message: 'Password must contain at least 1 uppercase letter' }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return { valid: false, message: 'Password must contain at least 1 special character' }
+    return { valid: true }
+}
+
+// ════════════════════════════════════
 //  SSO TOKEN EXCHANGE
 // ════════════════════════════════════
 export interface EcosystemTokenResponse {
@@ -216,6 +261,33 @@ export async function anchorIdentity(userId: string, email: string, displayName:
 // ════════════════════════════════════
 export async function guardianScan(target: string, type: 'address' | 'url'): Promise<any> {
     return hmacRequest('POST', '/api/guardian/scan', { target, type })
+}
+
+// ════════════════════════════════════
+//  TRUSTVAULT — ASSET STORAGE
+// ════════════════════════════════════
+
+/** Get a presigned URL for uploading a file to TrustVault */
+export async function getPresignedUploadUrl(
+    ecosystemToken: string, filename: string, mimetype: string
+): Promise<{ uploadUrl: string; assetId: string; publicUrl: string }> {
+    return bearerRequest('POST', '/api/vault/presign-upload', ecosystemToken, { filename, mimetype })
+}
+
+/** Upload asset metadata after file upload completes */
+export async function registerVaultAsset(
+    ecosystemToken: string,
+    assetId: string,
+    metadata: { name: string; type: string; size: number; hallmarkId?: string; format?: string }
+): Promise<{ success: boolean; asset: { id: string; name: string; url: string } }> {
+    return bearerRequest('POST', '/api/vault/register', ecosystemToken, { assetId, ...metadata })
+}
+
+/** List user's assets in TrustVault */
+export async function getVaultAssets(ecosystemToken: string): Promise<{
+    assets: { id: string; name: string; url: string; type: string; size: number; createdAt: string }[]
+}> {
+    return bearerRequest('GET', '/api/vault/assets', ecosystemToken)
 }
 
 // ════════════════════════════════════

@@ -12,12 +12,13 @@ import { PostProcessingPipeline } from './PostProcessing'
 import { EnvironmentSetup } from './EnvironmentSetup'
 import { AnimationEngine } from '../engine/AnimationEngine'
 import { ModelImporter } from './ModelImporter'
+import AutoRigger from './AutoRigger'
 
 function LoadingFallback() {
     return (
         <mesh>
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#a855f7" wireframe />
+            <meshStandardMaterial color="#06b6d4" wireframe />
         </mesh>
     )
 }
@@ -113,6 +114,9 @@ function SceneContent() {
             <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
                 <GizmoViewport labelColor="white" axisHeadScale={1} />
             </GizmoHelper>
+
+            {/* Auto-Rigger overlay */}
+            <AutoRigger />
         </>
     )
 }

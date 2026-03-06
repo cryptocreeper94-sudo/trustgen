@@ -1,9 +1,10 @@
 /* ====== TrustGen — Scene Node 3D Renderer ====== */
-import { useRef, useEffect, Suspense } from 'react'
+import { useRef, useEffect, Suspense, useMemo } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { useEngineStore } from '../store'
 import { ParticleSystem } from './ParticleSystem'
+import { SkeletalAnimationPlayer } from './SkeletalAnimationPlayer'
 import type { MaterialDef, PrimitiveKind } from '../types'
 
 function PrimitiveGeometry({ kind }: { kind: PrimitiveKind }) {
@@ -59,16 +60,37 @@ function useOptionalTexture(url?: string) {
     return tex.current
 }
 
-function ModelRenderer({ url, onClick }: { url: string; onClick: (e: any) => void }) {
-    const { scene } = useGLTF(url)
-    const cloned = scene.clone(true)
+function ModelRenderer({ url, nodeId, onClick }: { url: string; nodeId: string; onClick: (e: any) => void }) {
+    const { scene, animations } = useGLTF(url)
+    const cloned = useMemo(() => {
+        const c = scene.clone(true)
+        // Ensure skeletons are properly copied
+        if (animations.length > 0) {
+            c.traverse((child: THREE.Object3D) => {
+                if (child instanceof THREE.SkinnedMesh) {
+                    child.frustumCulled = false
+                }
+            })
+        }
+        return c
+    }, [scene, animations.length])
+
     return (
-        <primitive
-            object={cloned}
-            onClick={onClick}
-            onPointerOver={(e: any) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
-            onPointerOut={() => { document.body.style.cursor = 'auto' }}
-        />
+        <>
+            <primitive
+                object={cloned}
+                onClick={onClick}
+                onPointerOver={(e: any) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
+                onPointerOut={() => { document.body.style.cursor = 'auto' }}
+            />
+            {animations.length > 0 && (
+                <SkeletalAnimationPlayer
+                    nodeId={nodeId}
+                    scene={cloned}
+                    animations={animations}
+                />
+            )}
+        </>
     )
 }
 
@@ -197,9 +219,9 @@ export function SceneNode3D({ nodeId }: SceneNode3DProps) {
         return (
             <group ref={groupRef} position={pos} rotation={rot} scale={scl}>
                 <Suspense fallback={
-                    <mesh><boxGeometry args={[0.5, 0.5, 0.5]} /><meshStandardMaterial color="#a855f7" wireframe /></mesh>
+                    <mesh><boxGeometry args={[0.5, 0.5, 0.5]} /><meshStandardMaterial color="#06b6d4" wireframe /></mesh>
                 }>
-                    <ModelRenderer url={node.modelUrl} onClick={handleClick} />
+                    <ModelRenderer url={node.modelUrl} nodeId={nodeId} onClick={handleClick} />
                 </Suspense>
                 {children}
             </group>
