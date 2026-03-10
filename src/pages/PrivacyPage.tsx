@@ -99,7 +99,7 @@ export function PrivacyPage() {
                         <ul>
                             <li><strong>Stripe</strong> — Payment processing</li>
                             <li><strong>Twilio</strong> — SMS notifications</li>
-                            <li><strong>Meshy.ai</strong> — AI 3D model generation</li>
+                            <li><strong>TrustGen Engine</strong> — In-house procedural 3D generation</li>
                             <li><strong>Trust Layer</strong> — Blockchain provenance</li>
                             <li><strong>Vercel</strong> — Frontend hosting</li>
                             <li><strong>Render</strong> — Backend hosting</li>

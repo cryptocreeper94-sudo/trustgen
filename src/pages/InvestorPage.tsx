@@ -5,7 +5,7 @@ import { Footer } from '../components/Footer'
 const KEY_METRICS = [
     { label: 'Total Addressable Market', value: '$48B', sub: '3D content creation by 2028' },
     { label: 'Trust Layer Ecosystem', value: '12+', sub: 'Connected apps & services' },
-    { label: 'AI Model Gen Cost', value: '< $0.10', sub: 'Per generation via Meshy.ai' },
+    { label: 'AI Model Gen Cost', value: '$0.00', sub: 'In-house procedural engine' },
     { label: 'Target Launch', value: 'Q3 2026', sub: 'August 23, 2026' },
 ]
 
@@ -19,7 +19,7 @@ const REVENUE_STREAMS = [
 const TECH_STACK = [
     { name: 'Frontend', detail: 'React 19, Three.js, Vite, Vercel' },
     { name: 'Backend', detail: 'Node.js, Express, PostgreSQL, Render' },
-    { name: 'AI Engine', detail: 'Meshy.ai (3D Gen), OpenAI GPT-4o' },
+    { name: 'AI Engine', detail: 'In-house Procedural Gen, OpenAI GPT-4o' },
     { name: 'Blockchain', detail: 'Trust Layer (hallmarks, SIG rewards)' },
     { name: 'Payments', detail: 'Stripe (subscriptions, credits)' },
     { name: 'Comms', detail: 'Twilio (SMS), Signal Chat (support)' },
@@ -27,7 +27,7 @@ const TECH_STACK = [
 
 const MILESTONES = [
     { date: 'Q1 2026', status: 'done', text: 'Core 3D editor with real-time rendering' },
-    { date: 'Q1 2026', status: 'done', text: 'AI model generation integration (Meshy.ai)' },
+    { date: 'Q1 2026', status: 'done', text: 'In-house procedural generation engine (characters, creatures, nature)' },
     { date: 'Q1 2026', status: 'done', text: 'Trust Layer SSO and hallmark system' },
     { date: 'Q2 2026', status: 'current', text: 'Platform launch with billing and blog' },
     { date: 'Q2 2026', status: 'upcoming', text: 'Mobile app (PWA) and team collaboration' },

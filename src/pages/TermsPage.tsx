@@ -24,7 +24,7 @@ export function TermsPage() {
                         <h2>2. Description of Service</h2>
                         <p>
                             TrustGen is a premium AI-powered 3D creation, animation, and export platform.
-                            The Service includes 3D scene editing, AI model generation (via Meshy.ai),
+                            The Service includes 3D scene editing, in-house procedural AI model generation,
                             keyframe animation, post-processing effects, and model import/export capabilities.
                             TrustGen is a registered application within the Trust Layer ecosystem.
                         </p>
@@ -52,7 +52,7 @@ export function TermsPage() {
                         <h2>5. Content Ownership</h2>
                         <p>
                             You retain all rights to 3D models, scenes, animations, and assets you create using
-                            TrustGen. AI-generated models are subject to Meshy.ai's usage terms. By using the
+                            TrustGen. Procedurally generated models are created entirely in-house. By using the
                             Service, you grant DarkWave Studios a limited license to display your public creations
                             within the Trust Layer ecosystem.
                         </p>

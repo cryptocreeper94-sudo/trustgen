@@ -27,7 +27,7 @@ const FEATURES = [
         icon: '🤖',
         category: 'AI Powered',
         title: 'AI Model Generation',
-        description: 'Describe any object and watch AI bring it to life as a textured 3D model. Powered by Meshy.ai with up to 800 character prompts.',
+        description: 'Generate characters, creatures, trees, flowers, rocks, and more with our in-house procedural engine. 44 presets, infinite customization, zero external dependencies.',
         path: '/editor',
         cta: 'Try AI Gen',
     },

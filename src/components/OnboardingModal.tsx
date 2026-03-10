@@ -23,7 +23,7 @@ const STEPS: Step[] = [
     {
         icon: '🤖',
         title: 'AI Generation',
-        body: 'Open the AI tab to generate 3D models from text descriptions, images, or URLs. You can also generate textures for existing models. Requires a Meshy API key.',
+        body: 'Open the AI tab to generate 3D characters, creatures, trees, flowers, and more using our built-in procedural engine. No API keys required — everything runs locally.',
     },
     {
         icon: '🎬',
