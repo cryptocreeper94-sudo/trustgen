@@ -7,3 +7,6 @@ export * from './MeshUtils'
 // Generators
 export * from './NatureGenerator'
 export * from './CreatureGenerator'
+
+// Rig Integration
+export * from './AutoRigBridge'
