@@ -16,7 +16,7 @@ import type {
 } from './GeneratorTypes'
 import {
     createLoftGeometry, createTaperedLimb, createLeafShape,
-    createSplineLatheGeometry, mat, mulberry32, displaceGeometry,
+    mat, mulberry32, displaceGeometry,
 } from './MeshUtils'
 
 // ══════════════════════════════════════════

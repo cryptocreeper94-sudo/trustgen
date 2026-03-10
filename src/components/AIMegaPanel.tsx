@@ -8,7 +8,7 @@
  * - Auto-Cut
  * - Lip Sync
  */
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { AIGenerationPanel } from './AIPanel'
 import { InfoBubble } from './Tooltip'
 

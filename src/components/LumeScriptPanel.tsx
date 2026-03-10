@@ -80,7 +80,7 @@ export function LumeScriptPanel() {
         const script = compileScript(scriptSource)
         await executeScript(script, mockExecutor, {
             delayMs: 300,
-            onProgress: (index, total, result) => {
+            onProgress: (index, _total, result) => {
                 const cmd = script.commands[index]
                 setLog(prev => [...prev, {
                     input: cmd.intent.raw,

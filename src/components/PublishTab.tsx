@@ -2,11 +2,10 @@
  * Unified publishing panel: social export, platform upload, blockchain proof
  * Replaces the export-heavy section of the old Export tab.
  */
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { InfoBubble } from './Tooltip'
 import { SOCIAL_PRESETS, type SocialPlatform } from '../engine/SocialExport'
 import { PLATFORMS, type UploadPlatform } from '../engine/PlatformUpload'
-import { IMAGE_ASSETS } from '../engine/ImageAssets'
 
 type PublishSection = 'format' | 'upload' | 'proof'
 

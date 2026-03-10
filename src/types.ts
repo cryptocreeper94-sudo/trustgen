@@ -86,6 +86,7 @@ export interface SkeletalClipInfo {
     name: string
     duration: number
     trackCount: number
+    _clip?: any // runtime AnimationClip ref (not serialized)
 }
 
 export interface SkeletalAnimState {
@@ -164,7 +165,7 @@ export interface CameraState {
 // ── Editor ──
 export type ToolMode = 'select' | 'translate' | 'rotate' | 'scale'
 export type GizmoSpace = 'world' | 'local'
-export type SidebarTab = 'scene' | 'materials' | 'animation' | 'lighting' | 'effects' | 'ai' | 'export'
+export type SidebarTab = 'scene' | 'materials' | 'animation' | 'lighting' | 'effects' | 'ai' | 'lume' | 'publish' | 'export'
 
 export interface EditorState {
     selectedNodeId: string | null

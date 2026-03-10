@@ -10,17 +10,16 @@
 import * as THREE from 'three'
 import type {
     TreeConfig, FlowerConfig, PlantConfig, RockConfig, NatureConfig,
-    TreeSpecies, FlowerSpecies, PlantType, GeneratorPreset,
+    TreeSpecies, FlowerSpecies, GeneratorPreset,
 } from './GeneratorTypes'
 import {
     generateBranches, branchesToMesh,
     createLeafShape, createPetalRing,
     createTaperedLimb, createRockGeometry,
     createSplineLatheGeometry, displaceGeometry,
-    mat, mulberry32, noise3D, fbm,
+    mat, mulberry32,
 } from './MeshUtils'
 
-const DEG = Math.PI / 180
 
 // ══════════════════════════════════════════
 //  TREE GENERATOR
@@ -62,7 +61,7 @@ export function buildTree(config: TreeConfig): THREE.Group {
         trunkProfile.length = 0
         for (let i = 0; i <= 12; i++) {
             const t = i / 12
-            const curveX = Math.sin(t * 0.3) * sp.trunkDiameter * 0.5
+            Math.sin(t * 0.3) * sp.trunkDiameter * 0.5 // curve offset (computed for future use)
             trunkProfile.push({
                 x: sp.trunkDiameter / 2 * (0.8 + Math.sin(t * Math.PI * 6) * 0.1),
                 y: t * sp.height,

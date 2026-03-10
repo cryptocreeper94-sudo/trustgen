@@ -124,13 +124,13 @@ const ENVIRONMENT_MOOD_MAP: Record<StoryStyle, string[]> = {
     cinematic: ['void', 'beach', 'park', 'living-room'],
 }
 
-const STYLE_LIGHTING: Record<StoryStyle, string> = {
+/* const STYLE_LIGHTING: Record<StoryStyle, string> = {
     documentary: 'natural',
     explainer: 'bright',
     dramatic: 'dramatic',
     educational: 'warm',
     cinematic: 'ethereal',
-}
+} */
 
 /**
  * Analyze text and suggest scene properties.

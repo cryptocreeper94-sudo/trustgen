@@ -1,6 +1,6 @@
 /* ====== TrustGen — AI Generation Panel ====== */
 /* In-house procedural generation — no external APIs */
-import React from 'react'
+// React not needed (JSX transform handles it)
 import GeneratorPanel from './GeneratorPanel'
 
 // ── Main AI Panel (now uses in-house generators) ──

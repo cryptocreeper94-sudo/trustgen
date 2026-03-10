@@ -1,10 +1,9 @@
 /* ====== TrustGen — IK Controls Panel ======
  * UI for enabling/disabling IK chains and adjusting targets.
  */
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import {
     HUMANOID_IK_CHAINS,
-    type HumanoidIKChainDef,
     type IKSolverConfig,
     DEFAULT_IK_CONFIG,
 } from '../engine/InverseKinematics'

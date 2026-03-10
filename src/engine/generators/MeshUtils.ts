@@ -6,7 +6,7 @@
  * NO external dependencies beyond three.
  */
 import * as THREE from 'three'
-import type { Point2, Point3, CrossSection, ProfileCurve } from './GeneratorTypes'
+import type { Point2, Point3, CrossSection } from './GeneratorTypes'
 
 // ══════════════════════════════════════════
 //  NOISE — Simplex-style value noise for displacement
@@ -379,7 +379,7 @@ export function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
     const uvArray = new Float32Array(totalVerts * 2)
     const indices: number[] = []
 
-    let vertOffset = 0, idxOffset = 0
+    let vertOffset = 0
     for (const geo of geometries) {
         const pos = geo.getAttribute('position')
         const norm = geo.getAttribute('normal')
@@ -660,7 +660,7 @@ export function generateBranches(
 export function branchesToMesh(
     segments: BranchSegment[],
     material: THREE.Material,
-    tubeSegments = 6,
+    _tubeSegments = 6,
     radialSegments = 6,
 ): THREE.Group {
     const group = new THREE.Group()

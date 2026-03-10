@@ -92,7 +92,7 @@ export async function renderSequence(
     signal?: AbortSignal
 ): Promise<Blob | null> {
     const totalFrames = Math.ceil((settings.duration || 10) * settings.fps)
-    const frameDuration = 1000 / settings.fps
+    // frameDuration computed when needed: 1000 / settings.fps
     const startTime = performance.now()
 
     const progress: RenderProgress = {

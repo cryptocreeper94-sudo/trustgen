@@ -89,7 +89,7 @@ const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
 //  MAIN COMPONENT
 // ══════════════════════════════════════════
 
-const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ onGenerate, onPreview }) => {
+const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ onGenerate }) => {
     const [tab, setTab] = useState<GeneratorTab>('characters')
     const [creatureSub, setCreatureSub] = useState<CreatureSubTab>('quadruped')
     const [natureSub, setNatureSub] = useState<NatureSubTab>('tree')

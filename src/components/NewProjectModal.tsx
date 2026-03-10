@@ -3,7 +3,7 @@
  * This is the first thing a user sees when they click "New Project".
  * Makes Story Mode and templates immediately discoverable.
  */
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { PROJECT_TEMPLATES, type ProjectTemplate } from '../engine/ProjectTemplates'
 import { IMAGE_ASSETS } from '../engine/ImageAssets'
 import { InfoBubble } from './Tooltip'

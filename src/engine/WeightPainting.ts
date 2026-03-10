@@ -248,9 +248,9 @@ export function createWeightVisualization(
     for (let v = 0; v < vertexCount; v++) {
         let weight = 0
         for (let i = 0; i < 4; i++) {
-            const idx = skinIndexAttr.getComponent(v * 4 + i)
+            const idx = skinIndexAttr.getX(v * 4 + i)
             if (idx === boneIndex) {
-                weight = skinWeightAttr.getComponent(v * 4 + i)
+                weight = skinWeightAttr.getX(v * 4 + i)
                 break
             }
         }

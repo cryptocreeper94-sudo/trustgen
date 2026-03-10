@@ -112,7 +112,7 @@ export const IMAGE_ASSETS = {
 // ── Helper Functions ──
 
 type AssetCategory = keyof typeof IMAGE_ASSETS
-type AssetId<C extends AssetCategory> = keyof typeof IMAGE_ASSETS[C]
+// type AssetId<C extends AssetCategory> = keyof typeof IMAGE_ASSETS[C]
 
 /**
  * Get image asset by category and ID.

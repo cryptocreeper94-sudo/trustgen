@@ -7,11 +7,11 @@
  * No external models, no Mixamo, no Meshy — everything generated in-engine.
  */
 import * as THREE from 'three'
-import type { CharacterGenConfig, BodyBuild, Gender, FaceConfig, GeneratorPreset } from './generators/GeneratorTypes'
-import { DEFAULT_CHARACTER, DEFAULT_FACE } from './generators/GeneratorTypes'
+import type { CharacterGenConfig, BodyBuild, Gender, GeneratorPreset } from './generators/GeneratorTypes'
+import { DEFAULT_CHARACTER } from './generators/GeneratorTypes'
 import {
-    createSplineLatheGeometry, createTaperedLimb, createLeafShape,
-    mat, displaceGeometry, mulberry32,
+    createSplineLatheGeometry, createTaperedLimb,
+    mat, displaceGeometry,
 } from './generators/MeshUtils'
 import type { Point2 } from './generators/GeneratorTypes'
 

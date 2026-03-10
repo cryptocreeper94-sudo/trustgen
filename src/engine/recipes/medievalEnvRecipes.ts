@@ -1,5 +1,5 @@
 /* ====== Prop Recipes — Medieval Environment (26 assets) ====== */
-import type { PropRecipe } from './propTypes'
+import type { PropRecipe } from '../propTypes'
 
 export const MEDIEVAL_ENV_RECIPES: PropRecipe[] = [
     // ── Buildings ──

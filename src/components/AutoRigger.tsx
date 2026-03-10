@@ -1,11 +1,10 @@
 /* ====== TrustGen — Auto-Rigger 3D Overlay ====== */
 /* Renders joint marker circles over the 3D viewport using CSS overlay positioning */
-import { useCallback, useMemo, useRef, useEffect, useState } from 'react'
+import { useCallback, useMemo, useRef, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useRigStore } from '../stores/rigStore'
-import { computeBoundingBox, normalizedToWorld, worldToNormalized, buildSkeletonFromMarkers, applyRigToMesh, detectTPose } from '../engine/autoRigEngine'
-import { useEngineStore } from '../store'
+import { computeBoundingBox, normalizedToWorld, worldToNormalized } from '../engine/autoRigEngine'
 import type { JointMarker } from '../types/rigTypes'
 
 // ══════════════════════════════════════════
@@ -14,29 +13,12 @@ import type { JointMarker } from '../types/rigTypes'
 
 /** Renders HTML circle markers for each joint, positioned via 3D projection */
 export function JointMarkerOverlay() {
-    const { camera, gl, size } = useThree()
+    const { camera, size } = useThree()
     const markers = useRigStore(s => s.markers)
-    const activeMarkerId = useRigStore(s => s.activeMarkerId)
-    const mode = useRigStore(s => s.mode)
     const targetNodeId = useRigStore(s => s.targetNodeId)
-    const placeMarker = useRigStore(s => s.placeMarker)
-    const moveMarker = useRigStore(s => s.moveMarker)
-    const setActiveMarker = useRigStore(s => s.setActiveMarker)
-    const [projectedPositions, setProjectedPositions] = useState<Map<string, { x: number; y: number; behind: boolean }>>(new Map())
 
-    // Get the target object's bounding box
-    const nodes = useEngineStore(s => s.nodes)
-    const targetNode = nodes.find(n => n.id === targetNodeId)
-
-    const objectRef = useRef<THREE.Object3D | null>(null)
     const bboxRef = useRef<THREE.Box3>(new THREE.Box3())
-
-    // Find the 3D object in the scene
-    useEffect(() => {
-        if (!targetNodeId) return
-        const scene = gl.domElement.parentElement?.querySelector('canvas')
-        // We'll find the object traversing the Three.js scene
-    }, [targetNodeId])
+    const positionsRef = useRef(new Map<string, { x: number; y: number; behind: boolean }>())
 
     // Project markers to screen coordinates each frame
     useFrame(() => {
@@ -66,7 +48,7 @@ export function JointMarkerOverlay() {
             newPositions.set(marker.id, { x, y, behind })
         }
 
-        setProjectedPositions(newPositions)
+        positionsRef.current = newPositions
     })
 
     return null // Rendering happens in the HTML overlay
@@ -80,7 +62,6 @@ export function JointMarkerOverlay() {
 export function BoneVisualization() {
     const markers = useRigStore(s => s.markers)
     const showBones = useRigStore(s => s.showBones)
-    const targetNodeId = useRigStore(s => s.targetNodeId)
 
     const lineGeometry = useMemo(() => {
         if (!showBones) return null
