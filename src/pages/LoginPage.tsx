@@ -1,5 +1,6 @@
-/* ====== TrustGen — Login / Register Page ====== */
-import { useState, type FormEvent } from 'react'
+/* ====== TrustGen — Login / Register Page (Ultra-Premium) ====== */
+import { useState, useEffect, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 
 export function LoginPage() {
@@ -7,7 +8,22 @@ export function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')
-    const { login, register, loading, error, clearError } = useAuthStore()
+    const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+    const {
+        login, register, biometricLogin, biometricAvailable,
+        loading, error, clearError, isAuthenticated,
+    } = useAuthStore()
+
+    const returnTo = searchParams.get('returnTo') || '/dashboard'
+    const reason = searchParams.get('reason')
+
+    // If already authenticated, redirect to returnTo
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate(returnTo, { replace: true })
+        }
+    }, [isAuthenticated, navigate, returnTo])
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -18,11 +34,19 @@ export function LoginPage() {
         }
     }
 
+    const handleBiometric = async () => {
+        if (!biometricAvailable()) {
+            alert('Biometric authentication is not available on this device.')
+            return
+        }
+        await biometricLogin()
+    }
+
     return (
         <div className="auth-page">
             {/* Animated background gradient mesh */}
             <div className="auth-bg" style={{
-                background: 'radial-gradient(ellipse at 20% 50%, rgba(168,85,247,0.15), transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(6,182,212,0.1), transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(217,70,239,0.08), transparent 50%), var(--bg-void)',
+                background: 'radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.12), transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(20,184,166,0.08), transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(168,85,247,0.08), transparent 50%), var(--bg-void)',
             }} />
 
             <div className="auth-card">
@@ -31,6 +55,14 @@ export function LoginPage() {
                     <h1>TrustGen</h1>
                     <p>{mode === 'login' ? 'Sign in to your 3D workspace' : 'Create your 3D workspace'}</p>
                 </div>
+
+                {/* Reason banner — shown when redirected from a gated action */}
+                {reason && (
+                    <div className="auth-reason-banner">
+                        <span className="auth-reason-icon">🔒</span>
+                        <span>Sign in to <strong>{reason.replace(/-/g, ' ')}</strong> your work</span>
+                    </div>
+                )}
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                     {mode === 'register' && (
@@ -80,6 +112,17 @@ export function LoginPage() {
 
                     <div className="auth-divider">or</div>
 
+                    {/* Biometric / Passkey Login */}
+                    <button
+                        type="button"
+                        className="auth-biometric-btn"
+                        onClick={handleBiometric}
+                        disabled={loading}
+                    >
+                        <span className="auth-biometric-icon">🔐</span>
+                        Sign in with Biometrics
+                    </button>
+
                     {/* Trust Layer SSO */}
                     <button
                         type="button"
@@ -102,18 +145,17 @@ export function LoginPage() {
                     </div>
                 </form>
 
-                {/* Platform links */}
+                {/* Platform links — all visible at proper size */}
                 <div className="auth-links">
                     <a href="/explore">← Explore Platform</a>
+                    <span className="auth-links-sep">·</span>
+                    <a href="/dev-portal">🛠️ Developer Portal</a>
                     <span className="auth-links-sep">·</span>
                     <a href="/investors">Investors</a>
                     <span className="auth-links-sep">·</span>
                     <a href="/blog">Blog</a>
                     <span className="auth-links-sep">·</span>
                     <a href="/legal">Legal</a>
-                </div>
-                <div className="auth-links" style={{ marginTop: 4 }}>
-                    <a href="/dev-portal" style={{ opacity: 0.5, fontSize: 10 }}>🛠️ Developer Portal</a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,253 @@
+/* ====== TrustGen — IK Controls Styles ====== */
+
+.ik-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ik-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.ik-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--bg-active);
+    border: 1px solid var(--border-active);
+    padding: 2px 8px;
+    border-radius: var(--radius-round);
+}
+
+/* ── Chain Rows ── */
+.ik-chains {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.ik-chain-row {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color var(--transition-fast);
+}
+
+.ik-chain-row.active {
+    border-color: var(--border-active);
+    background: var(--bg-active);
+}
+
+.ik-chain-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    text-align: left;
+    transition: background var(--transition-fast);
+}
+
+.ik-chain-toggle:hover {
+    background: var(--bg-hover);
+}
+
+.ik-chain-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.ik-chain-name {
+    flex: 1;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.ik-chain-status {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: var(--radius-round);
+}
+
+.ik-chain-status.on {
+    color: var(--accent);
+    background: rgba(6, 182, 212, 0.15);
+}
+
+.ik-chain-status.off {
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+}
+
+/* ── Weight Slider ── */
+.ik-weight-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 6px;
+}
+
+.ik-weight-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    width: 32px;
+}
+
+.ik-weight-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--bg-hover);
+    outline: none;
+    cursor: pointer;
+}
+
+.ik-weight-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg-panel);
+    cursor: grab;
+}
+
+.ik-weight-value {
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    width: 28px;
+    text-align: right;
+}
+
+/* ── Tip Box ── */
+.ik-tip {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    line-height: 1.4;
+}
+
+/* ── Advanced Settings ── */
+.ik-advanced-toggle {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+    transition: color var(--transition-fast);
+}
+
+.ik-advanced-toggle:hover {
+    color: var(--text-primary);
+}
+
+.ik-advanced {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    animation: motionSlideDown 0.2s var(--ease-out);
+}
+
+.ik-setting {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+}
+
+.ik-setting label {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+.ik-setting input[type="number"] {
+    width: 60px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text-primary);
+    padding: 3px 6px;
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+}
+
+.ik-setting input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--bg-hover);
+    cursor: pointer;
+}
+
+.ik-setting input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 1px solid var(--bg-panel);
+}
+
+.ik-setting span {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    width: 28px;
+    text-align: right;
+}
+
+/* ── Empty State ── */
+.ik-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 12px;
+    text-align: center;
+}
+
+.ik-empty-icon {
+    font-size: 1.8rem;
+    opacity: 0.5;
+}
+
+.ik-empty-text {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.ik-empty-hint {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}

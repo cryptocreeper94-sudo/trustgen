@@ -67,7 +67,7 @@ export function WorkspacePage() {
 
     /* ── Stats ── */
     const completedCount = ALL_ASSETS.filter(a => getStatus(a.id) === 'complete').length
-    const generatedCount = ALL_ASSETS.filter(a => ['generated', 'rigged', 'complete'].includes(getStatus(a.id))).length
+    const _generatedCount = ALL_ASSETS.filter(a => ['generated', 'rigged', 'complete'].includes(getStatus(a.id))).length
     const progressPct = Math.round((completedCount / ASSET_COUNTS.total) * 100)
 
     /* ── Bulk actions ── */

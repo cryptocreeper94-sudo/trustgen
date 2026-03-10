@@ -159,9 +159,9 @@ export function ExplorePage() {
                     </div>
                     <button
                         className="explore-hero-cta"
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/editor')}
                     >
-                        Get Started Free →
+                        Try the Studio Free →
                     </button>
                 </div>
 

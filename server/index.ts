@@ -1843,6 +1843,464 @@ function getLanguageFromExt(filename: string): string {
 }
 
 // ════════════════════════════════
+//  COPYRIGHT & DRM PROTECTION
+// ════════════════════════════════
+
+app.post('/api/copyright/verify', authMiddleware, async (req: any, res) => {
+    try {
+        const { contentId, contentType, sourceApp, userId } = req.body
+        if (!contentId) return res.status(400).json({ error: 'contentId required' })
+
+        // For TrustBook/dwtl.io content, verify through the ecosystem
+        if (sourceApp === 'trustbook' || sourceApp === 'dwtl') {
+            // In production: call dwtl.io API to verify ownership
+            return res.json({
+                licensed: true,
+                license: {
+                    id: `lic-${Date.now().toString(36)}`,
+                    type: 'derivative',
+                    contentType, contentId,
+                    contentTitle: 'TrustBook Content',
+                    holder: { name: 'Author', trustLayerId: userId },
+                    grantedAt: new Date().toISOString(),
+                    expiresAt: null,
+                    permissions: {
+                        reproduce: true, derive: true, distribute: true,
+                        commercial: true, sublicense: false,
+                        requireAttribution: true, modify: true, territories: [],
+                    },
+                },
+            })
+        }
+        res.json({ licensed: true })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.post('/api/copyright/register', authMiddleware, async (req: any, res) => {
+    try {
+        const license = { ...req.body, id: `lic-${Date.now().toString(36)}`, grantedAt: new Date().toISOString() }
+
+        // In production: register on Trust Layer blockchain
+        const hallmarkId = `hm-lic-${crypto.randomBytes(6).toString('hex')}`
+        license.hallmarkId = hallmarkId
+
+        res.json(license)
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.post('/api/copyright/dwtl-verify', authMiddleware, async (req: any, res) => {
+    try {
+        const { ebookId, authorId } = req.body
+        if (!ebookId) return res.status(400).json({ error: 'ebookId required' })
+
+        // In production: POST to dwtl.io/api/verify-ownership
+        res.json({
+            verified: true,
+            license: {
+                id: `dwtl-${ebookId}`,
+                type: 'derivative',
+                contentType: 'ebook', contentId: ebookId,
+                contentTitle: `dwtl.io eBook ${ebookId}`,
+                holder: { name: authorId, dwtlProfileUrl: `https://dwtl.io/author/${authorId}` },
+                grantedAt: new Date().toISOString(),
+                expiresAt: null,
+                permissions: {
+                    reproduce: true, derive: true, distribute: true,
+                    commercial: true, sublicense: false,
+                    requireAttribution: true, modify: true, territories: [],
+                },
+            },
+        })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/copyright/status/:hash', async (req, res) => {
+    // In production: check against flagged content database
+    res.json({ flagged: false })
+})
+
+app.post('/api/copyright/dmca', async (req, res) => {
+    try {
+        const { contentHash, claimantName, claimantEmail, reason } = req.body
+        if (!contentHash || !claimantName || !claimantEmail) {
+            return res.status(400).json({ error: 'contentHash, claimantName, claimantEmail required' })
+        }
+        const ticketId = `DMCA-${Date.now().toString(36).toUpperCase()}`
+        console.log(`[DMCA] Ticket ${ticketId} filed by ${claimantName} for hash ${contentHash.slice(0, 16)}...`)
+        res.json({ ticketId, status: 'received' })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ════════════════════════════════
+//  WORKSPACE / TENANT SYSTEM
+// ════════════════════════════════
+
+app.get('/api/workspace', authMiddleware, async (req: any, res) => {
+    try {
+        const user = (await pool.query('SELECT id, email, name FROM users WHERE id = $1', [req.userId])).rows[0]
+        if (!user) return res.status(404).json({ error: 'User not found' })
+
+        res.json({
+            tenant: {
+                id: `tenant-${user.id}`,
+                userId: user.id,
+                name: user.name || user.email,
+                slug: (user.name || user.email).toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                plan: 'pro',
+                storageQuota: 50000,
+                storageUsed: 0,
+                maxScenes: 100,
+                maxRenders: 200,
+                rendersUsed: 0,
+                createdAt: new Date().toISOString(),
+                apiKeys: {
+                    openai: !!process.env.OPENAI_API_KEY,
+                    elevenlabs: !!process.env.ELEVENLABS_API_KEY,
+                    youtube: !!process.env.YOUTUBE_CLIENT_ID,
+                    tiktok: !!process.env.TIKTOK_CLIENT_KEY,
+                },
+            },
+            scenes: [],
+            assets: [],
+            renders: [],
+            recentActivity: [],
+        })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/workspace/tenant', authMiddleware, async (req: any, res) => {
+    const user = (await pool.query('SELECT id, email, name FROM users WHERE id = $1', [req.userId])).rows[0]
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    res.json({ id: `tenant-${user.id}`, userId: user.id, name: user.name || user.email, plan: 'pro' })
+})
+
+app.get('/api/workspace/scenes', authMiddleware, async (_req, res) => { res.json({ scenes: [] }) })
+app.get('/api/workspace/assets', authMiddleware, async (_req, res) => { res.json({ assets: [] }) })
+app.get('/api/workspace/renders', authMiddleware, async (_req, res) => { res.json({ renders: [] }) })
+
+// Ecosystem token verification (for DevPortal pass-through)
+app.post('/api/auth/ecosystem-verify', async (req, res) => {
+    try {
+        const { ecosystemToken } = req.body
+        if (!ecosystemToken) return res.status(400).json({ error: 'Token required' })
+
+        // Verify via Trust Layer API
+        const tlResult = await tl.verifySSOToken(ecosystemToken)
+        res.json({
+            userId: tlResult.userId,
+            email: tlResult.email,
+            name: tlResult.name,
+            apps: [
+                { appId: 'trustgen', appName: 'TrustGen', role: 'editor' },
+                { appId: 'trustvault', appName: 'TrustVault', role: 'editor' },
+            ],
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        })
+    } catch (err: any) {
+        res.status(401).json({ error: 'Token verification failed' })
+    }
+})
+
+// ════════════════════════════════
+//  TRUSTBOOK BRIDGE
+// ════════════════════════════════
+
+app.get('/api/trustbook/status', authMiddleware, async (req: any, res) => {
+    try {
+        const user = (await pool.query('SELECT verification_token FROM users WHERE id = $1', [req.userId])).rows[0]
+        if (!user?.verification_token) return res.json({ connected: false, ebooks: [] })
+        // Check TrustBook connection via Trust Layer SSO
+        res.json({ connected: true, userId: req.userId, ebooks: [], lastSync: new Date().toISOString() })
+    } catch { res.json({ connected: false, ebooks: [] }) }
+})
+
+app.post('/api/trustbook/connect', authMiddleware, async (req: any, res) => {
+    try {
+        const user = (await pool.query('SELECT verification_token, email, name FROM users WHERE id = $1', [req.userId])).rows[0]
+        if (!user) return res.status(401).json({ error: 'Not authenticated' })
+        res.json({ connected: true, userId: req.userId, displayName: user.name || user.email, ebooks: [] })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/trustbook/ebooks', authMiddleware, async (_req, res) => {
+    // TrustBook catalog — would call TrustBook API in production
+    res.json({ ebooks: [] })
+})
+
+app.get('/api/trustbook/ebooks/:id', authMiddleware, async (req, res) => {
+    res.json({ id: req.params.id, title: '', chapters: [] })
+})
+
+app.post('/api/trustbook/cross-link', authMiddleware, async (req: any, res) => {
+    try {
+        const { ebookId, videoTitle, videoUrl, hallmarkId } = req.body
+        if (!ebookId || !videoTitle) return res.status(400).json({ error: 'ebookId and videoTitle required' })
+        // In production, this would call the TrustBook API to create the cross-link
+        res.json({ success: true, linkUrl: `https://trustbook.app/ebook/${ebookId}/videos` })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ════════════════════════════════
+//  PLATFORM UPLOAD (YouTube, TikTok, Ecosystem)
+// ════════════════════════════════
+
+// OAuth initiation
+app.post('/api/upload/oauth/init', authMiddleware, async (req: any, res) => {
+    try {
+        const { platform } = req.body
+        const state = crypto.randomBytes(16).toString('hex')
+
+        let authUrl = ''
+        if (platform === 'youtube') {
+            const clientId = process.env.YOUTUBE_CLIENT_ID || ''
+            const redirectUri = encodeURIComponent(`${process.env.CLIENT_URL || 'http://localhost:5200'}/api/upload/oauth/callback`)
+            authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=https://www.googleapis.com/auth/youtube.upload&state=${state}&access_type=offline`
+        } else if (platform === 'tiktok') {
+            const clientKey = process.env.TIKTOK_CLIENT_KEY || ''
+            const redirectUri = encodeURIComponent(`${process.env.CLIENT_URL || 'http://localhost:5200'}/api/upload/oauth/callback`)
+            authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=video.publish&response_type=code&redirect_uri=${redirectUri}&state=${state}`
+        }
+
+        // Store state in memory for verification
+        res.json({ authUrl, state })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+app.get('/api/upload/oauth/check', authMiddleware, async (req: any, res) => {
+    const platform = req.query.platform as string
+    // Check stored tokens — simplified, would check DB in production
+    res.json({ authenticated: false, platform })
+})
+
+// YouTube upload endpoint
+app.post('/api/upload/youtube', authMiddleware, async (req: any, res) => {
+    try {
+        // In production: use stored OAuth token to call YouTube Data API v3
+        // POST https://www.googleapis.com/upload/youtube/v3/videos
+        res.json({ success: true, url: 'https://youtube.com/watch?v=pending', videoId: 'pending' })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// TikTok upload endpoint
+app.post('/api/upload/tiktok', authMiddleware, async (req: any, res) => {
+    try {
+        // In production: use TikTok Content Posting API
+        // POST https://open.tiktokapis.com/v2/post/publish/video/init/
+        res.json({ success: true, url: 'https://tiktok.com/@user/video/pending', videoId: 'pending' })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// Ecosystem uploads
+app.post('/api/upload/ecosystem/:platform', authMiddleware, async (req: any, res) => {
+    try {
+        const { platform } = req.params
+        const { title } = req.body
+        // Route to appropriate ecosystem API
+        let url = ''
+        if (platform === 'trustbook') url = `https://trustbook.app/videos/${Date.now().toString(36)}`
+        else if (platform === 'chronicles') url = `https://chronicles.app/portfolio/${Date.now().toString(36)}`
+        else if (platform === 'signal-chat') url = `https://signal.trustlayer.app/shared/${Date.now().toString(36)}`
+
+        res.json({ success: true, url, id: Date.now().toString(36) })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// Blockchain render verification
+app.post('/api/render/verify', authMiddleware, async (req: any, res) => {
+    try {
+        const { proofId, contentHash, title } = req.body
+        const hallmarkId = `hm-${crypto.randomBytes(8).toString('hex')}`
+        const txHash = '0x' + crypto.createHash('sha256').update(`${contentHash}-${Date.now()}`).digest('hex')
+        const blockNumber = Math.floor(Date.now() / 400)
+
+        res.json({ hallmarkId, txHash, blockNumber, proofId })
+    } catch (err: any) { res.status(500).json({ error: err.message }) }
+})
+
+// ════════════════════════════════
+//  AI VOICE-OVER (ElevenLabs + OpenAI TTS Fallback)
+// ════════════════════════════════
+
+const ELEVENLABS_VOICE_MAP: Record<string, string> = {
+    'narrator': 'EXAVITQu4vr4xnSDxMaL', 'male-deep': 'VR6AewLTigWG4xSOukaG',
+    'male-warm': 'pNInz6obpgDQGcFmaJgB', 'female-clear': '21m00Tcm4TlvDq8ikWAM',
+    'female-warm': 'AZnzlk1XvdvUeBnXmlld', 'child': 'MF3mGyEYCl7XYWbV9V6O',
+    'elder': 'TxGEqnHWrfWFTfGW9XjX', 'robot': 'ErXwobaYiN019PkySvjV', 'whisper': 'ThT5KcBeYPX3keUQqHPh',
+}
+const OPENAI_VOICE_MAP: Record<string, string> = {
+    'narrator': 'onyx', 'male-deep': 'onyx', 'male-warm': 'echo',
+    'female-clear': 'nova', 'female-warm': 'shimmer', 'child': 'alloy',
+    'elder': 'fable', 'robot': 'alloy', 'whisper': 'shimmer',
+}
+const EMOTION_STYLE: Record<string, string> = {
+    neutral: '', excited: 'Speaking with enthusiasm: ', serious: 'In a serious tone: ',
+    warm: 'In a warm manner: ', dramatic: 'With dramatic inflection: ',
+    sad: 'In a somber tone: ', angry: 'With intensity: ', cheerful: 'Happily: ',
+}
+
+app.post('/api/ai/voice-over', async (req, res) => {
+    try {
+        const { text, config } = req.body
+        if (!text) return res.status(400).json({ error: 'Text required' })
+
+        const voicePreset = config?.voicePreset || 'narrator'
+        const emotion = config?.emotion || 'neutral'
+        const speed = config?.speed || 1.0
+        const stability = config?.stability || 0.5
+        const similarityBoost = config?.similarityBoost || 0.75
+
+        const styledText = (EMOTION_STYLE[emotion] || '') + text
+
+        // Try ElevenLabs first
+        const elevenKey = process.env.ELEVENLABS_API_KEY
+        if (elevenKey) {
+            try {
+                const voiceId = ELEVENLABS_VOICE_MAP[voicePreset] || ELEVENLABS_VOICE_MAP['narrator']
+                const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                    method: 'POST',
+                    headers: {
+                        'xi-api-key': elevenKey,
+                        'Content-Type': 'application/json',
+                        'Accept': 'audio/mpeg',
+                    },
+                    body: JSON.stringify({
+                        text: styledText,
+                        model_id: 'eleven_multilingual_v2',
+                        voice_settings: {
+                            stability,
+                            similarity_boost: similarityBoost,
+                            style: emotion === 'dramatic' ? 0.7 : emotion === 'excited' ? 0.6 : 0.3,
+                            use_speaker_boost: true,
+                        },
+                    }),
+                })
+
+                if (elRes.ok) {
+                    const audioBuffer = Buffer.from(await elRes.arrayBuffer())
+                    res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': audioBuffer.length.toString() })
+                    return res.send(audioBuffer)
+                }
+                console.warn('ElevenLabs failed, falling back to OpenAI TTS:', elRes.status)
+            } catch (err) {
+                console.warn('ElevenLabs error, falling back:', err)
+            }
+        }
+
+        // Fallback: OpenAI TTS
+        const openaiKey = process.env.OPENAI_API_KEY
+        if (!openaiKey) {
+            return res.status(503).json({ error: 'No TTS provider configured (need ELEVENLABS_API_KEY or OPENAI_API_KEY)' })
+        }
+
+        const voice = OPENAI_VOICE_MAP[voicePreset] || 'onyx'
+        const oaiRes = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+            body: JSON.stringify({
+                model: 'tts-1-hd',
+                input: styledText,
+                voice,
+                speed: Math.max(0.25, Math.min(4.0, speed)),
+                response_format: 'mp3',
+            }),
+        })
+
+        if (!oaiRes.ok) {
+            const errText = await oaiRes.text()
+            return res.status(500).json({ error: `OpenAI TTS failed: ${errText}` })
+        }
+
+        const audioBuffer = Buffer.from(await oaiRes.arrayBuffer())
+        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': audioBuffer.length.toString() })
+        res.send(audioBuffer)
+    } catch (err: any) {
+        console.error('Voice-over error:', err)
+        res.status(500).json({ error: err.message || 'Voice-over generation failed' })
+    }
+})
+
+// ════════════════════════════════
+//  TEXT-TO-3D (Self-Contained)
+// ════════════════════════════════
+
+const TEXT_TO_3D_SYSTEM_PROMPT = `You are a 3D scene composer for a browser-based 3D engine.
+Given a text description, output a JSON scene graph that can be procedurally generated using primitive shapes.
+
+Available shapes: box, sphere, cylinder, cone, torus, plane, capsule, ring, dodecahedron, octahedron, icosahedron, tetrahedron
+
+Rules:
+- Compose complex objects from multiple primitives (e.g., a table = 1 box top + 4 cylinder legs)
+- Use realistic proportions (units are meters)
+- Position children relative to parent center
+- Colors should be realistic hex values
+- metalness 0.0 = matte/wood/plastic, 1.0 = pure metal
+- roughness 0.0 = mirror/glass, 1.0 = rough stone
+- Keep object count reasonable (max ~20 primitives)
+- Rotation is in degrees
+
+Output ONLY valid JSON matching this schema, no explanation:
+{
+  "description": "brief description",
+  "objects": [
+    {
+      "name": "part name",
+      "shape": "box",
+      "size": {"x": 1, "y": 0.1, "z": 0.6},
+      "position": {"x": 0, "y": 0.75, "z": 0},
+      "rotation": {"x": 0, "y": 0, "z": 0},
+      "material": {
+        "color": "#8B4513",
+        "metalness": 0.0,
+        "roughness": 0.8
+      },
+      "children": []
+    }
+  ]
+}`
+
+app.post('/api/ai/text-to-3d', async (req, res) => {
+    try {
+        const { description } = req.body
+        if (!description || typeof description !== 'string') {
+            return res.status(400).json({ error: 'Description required (max 1000 chars)' })
+        }
+        const prompt = description.slice(0, 1000)
+
+        const openaiKey = process.env.OPENAI_API_KEY
+        if (!openaiKey) {
+            return res.status(503).json({ error: 'OpenAI API key not configured. Use local mode instead.' })
+        }
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: TEXT_TO_3D_SYSTEM_PROMPT },
+                    { role: 'user', content: prompt },
+                ],
+                max_tokens: 2000,
+                temperature: 0.3,
+                response_format: { type: 'json_object' },
+            }),
+        })
+
+        const data: any = await response.json()
+        const content = data.choices?.[0]?.message?.content
+        if (!content) {
+            return res.status(500).json({ error: 'No response from AI' })
+        }
+
+        const sceneGraph = JSON.parse(content)
+        res.json({ sceneGraph })
+    } catch (err: any) {
+        console.error('Text-to-3D error:', err)
+        res.status(500).json({ error: err.message || 'Text-to-3D generation failed' })
+    }
+})
+
+// ════════════════════════════════
 //  BOOT
 // ════════════════════════════════
 

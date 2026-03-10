@@ -2,10 +2,15 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { useEngineStore } from '../store'
 import { useRigStore } from '../stores/rigStore'
+import MotionLibrary from './MotionLibrary'
+import IKControls from './IKControls'
+import { MOTION_PRESETS } from '../engine/ProceduralMotionLibrary'
 import { RIG_TEMPLATES } from '../types/rigTypes'
 import type { RigTemplateName } from '../types/rigTypes'
 import { SceneHierarchy } from './SceneHierarchy'
-import { AIGenerationPanel } from './AIPanel'
+import { AIMegaPanel } from './AIMegaPanel'
+import { PublishTab } from './PublishTab'
+import { LumeScriptPanel } from './LumeScriptPanel'
 import { InfoBubble } from './Tooltip'
 import { getParticleConfig } from './ParticleSystem'
 import type {
@@ -20,8 +25,10 @@ const TABS: { id: SidebarTab; icon: string; label: string }[] = [
     { id: 'animation', icon: '⏱️', label: 'Animate' },
     { id: 'lighting', icon: '💡', label: 'Lighting' },
     { id: 'effects', icon: '✨', label: 'Effects' },
-    { id: 'ai', icon: '🧠', label: 'AI Gen' },
-    { id: 'export', icon: '💾', label: 'Export' },
+    { id: 'ai', icon: '🧠', label: 'AI Studio' },
+    { id: 'lume' as any, icon: '◈', label: 'Lume' },
+    { id: 'publish' as any, icon: '📤', label: 'Publish' },
+    { id: 'export', icon: '💾', label: 'Save' },
 ]
 
 function Accordion({ title, icon, defaultOpen = false, children }: {
@@ -442,6 +449,10 @@ function AnimationTab() {
 
     const skelAnim = node?.skeletalAnim
 
+    // IK state
+    const [ikActiveChains, setIkActiveChains] = useState<Set<string>>(new Set())
+    const [ikWeights, setIkWeights] = useState<Record<string, number>>({})
+
     return (
         <div className="tab-content">
             {/* Skeletal Animation Controls */}
@@ -573,6 +584,65 @@ function AnimationTab() {
             {/* ── Auto-Rigging ── */}
             <Accordion title="Auto-Rigging" icon="🦴" defaultOpen={false}>
                 <RiggingControls nodeId={selectedId} />
+            </Accordion>
+
+            {/* ── Procedural Motion Library ── */}
+            <Accordion title="Motion Library" icon="🎭" defaultOpen={false}>
+                <MotionLibrary
+                    onApplyClip={(name, params) => {
+                        const preset = MOTION_PRESETS.find(p => p.name === name)
+                        if (!preset || !selectedId) return
+                        const clip = preset.generate(params)
+                        const n = useEngineStore.getState().nodes[selectedId]
+                        if (!n) return
+                        const existingClips = n.skeletalAnim?.clips || []
+                        updateNode(selectedId, {
+                            skeletalAnim: {
+                                ...(n.skeletalAnim || { hasRig: true, playing: false, loop: true, speed: 1, crossfadeDuration: 0.3, activeClipIndex: 0, clips: [] }),
+                                clips: [
+                                    ...existingClips,
+                                    { name: clip.name, duration: clip.duration, trackCount: clip.tracks.length, _clip: clip }
+                                ],
+                                activeClipIndex: existingClips.length,
+                                playing: true,
+                            }
+                        })
+                    }}
+                    onPreviewClip={(name, params) => {
+                        const preset = MOTION_PRESETS.find(p => p.name === name)
+                        if (!preset || !selectedId) return
+                        const clip = preset.generate(params)
+                        const n = useEngineStore.getState().nodes[selectedId]
+                        if (!n) return
+                        updateNode(selectedId, {
+                            skeletalAnim: {
+                                ...(n.skeletalAnim || { hasRig: true, playing: false, loop: false, speed: 1, crossfadeDuration: 0.3, activeClipIndex: 0, clips: [] }),
+                                clips: [{ name: clip.name, duration: clip.duration, trackCount: clip.tracks.length, _clip: clip }],
+                                activeClipIndex: 0,
+                                playing: true,
+                                loop: false,
+                            }
+                        })
+                    }}
+                />
+            </Accordion>
+
+            {/* ── Inverse Kinematics ── */}
+            <Accordion title="Inverse Kinematics" icon="🎯" defaultOpen={false}>
+                <IKControls
+                    hasRig={!!skelAnim?.hasRig}
+                    activeChains={ikActiveChains}
+                    onToggleChain={(name) => {
+                        setIkActiveChains(prev => {
+                            const next = new Set(prev)
+                            if (next.has(name)) next.delete(name)
+                            else next.add(name)
+                            return next
+                        })
+                    }}
+                    onSetWeight={(name, w) => setIkWeights(prev => ({ ...prev, [name]: w }))}
+                    weights={ikWeights}
+                />
             </Accordion>
         </div>
     )
@@ -932,7 +1002,9 @@ export function Sidebar() {
             case 'animation': return <AnimationTab />
             case 'lighting': return <LightingTab />
             case 'effects': return <EffectsTab />
-            case 'ai': return <AIGenerationPanel />
+            case 'ai': return <AIMegaPanel />
+            case 'lume': return <LumeScriptPanel />
+            case 'publish': return <PublishTab />
             case 'export': return <ExportTab />
         }
     }

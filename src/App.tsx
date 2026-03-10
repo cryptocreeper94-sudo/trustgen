@@ -148,7 +148,7 @@ export default function App() {
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
         } />
         <Route path="/editor/:projectId?" element={
-          <ProtectedRoute><EditorLayout /></ProtectedRoute>
+          <EditorLayout />
         } />
         <Route path="/sms-opt-in" element={
           <ProtectedRoute><SMSOptInPage /></ProtectedRoute>
