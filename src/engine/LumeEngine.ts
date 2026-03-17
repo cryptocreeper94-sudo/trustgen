@@ -545,11 +545,93 @@ export async function executeScript(
     return results
 }
 
-// ── Voice-to-Scene ──
+// ── Voice-to-Scene with Adaptive Voice Profiles ──
+
+/**
+ * Per-session adaptive voice profile.
+ * Learns dialect mappings, filler-word patterns, and accent corrections
+ * from the user's speech over time. Persisted to localStorage.
+ */
+interface VoiceProfile {
+    dialectMap: Record<string, string>     // spoken word → canonical intent word
+    fillerWords: Set<string>               // words to strip before parsing
+    accentCorrections: Record<string, string> // phonetic corrections
+    dialectConfidence: number              // 0–100, increases with usage
+    sessionCount: number
+}
+
+const DEFAULT_FILLERS = new Set(['um', 'uh', 'like', 'basically', 'actually', 'just', 'so', 'well', 'you know', 'i mean'])
+
+function loadVoiceProfile(): VoiceProfile {
+    try {
+        const stored = localStorage.getItem('lume-voice-profile')
+        if (stored) {
+            const parsed = JSON.parse(stored)
+            return { ...parsed, fillerWords: new Set(parsed.fillerWords || [...DEFAULT_FILLERS]) }
+        }
+    } catch { /* fallback */ }
+    return {
+        dialectMap: {},
+        fillerWords: new Set(DEFAULT_FILLERS),
+        accentCorrections: {},
+        dialectConfidence: 0,
+        sessionCount: 0,
+    }
+}
+
+function saveVoiceProfile(profile: VoiceProfile) {
+    try {
+        localStorage.setItem('lume-voice-profile', JSON.stringify({
+            ...profile,
+            fillerWords: [...profile.fillerWords],
+        }))
+    } catch { /* quota exceeded fallback */ }
+}
+
+/**
+ * Apply adaptive voice profile corrections to raw speech transcript.
+ */
+function applyVoiceProfile(transcript: string, profile: VoiceProfile): string {
+    let cleaned = transcript.toLowerCase().trim()
+
+    // Strip filler words
+    for (const filler of profile.fillerWords) {
+        cleaned = cleaned.replace(new RegExp(`\\b${filler}\\b`, 'gi'), '')
+    }
+
+    // Apply dialect mappings (e.g., "throw down" → "place", "yeet" → "move")
+    for (const [spoken, canonical] of Object.entries(profile.dialectMap)) {
+        cleaned = cleaned.replace(new RegExp(`\\b${spoken}\\b`, 'gi'), canonical)
+    }
+
+    // Apply accent corrections
+    for (const [heard, intended] of Object.entries(profile.accentCorrections)) {
+        cleaned = cleaned.replace(new RegExp(`\\b${heard}\\b`, 'gi'), intended)
+    }
+
+    // Clean up extra whitespace
+    return cleaned.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Learn from a user correction: when the user re-says or edits a command,
+ * the profile learns the mapping.
+ */
+export function learnDialectMapping(spoken: string, intended: string) {
+    const profile = loadVoiceProfile()
+    profile.dialectMap[spoken.toLowerCase()] = intended.toLowerCase()
+    profile.dialectConfidence = Math.min(100, profile.dialectConfidence + 2)
+    saveVoiceProfile(profile)
+}
+
+/** Get current dialect confidence score (0–100) */
+export function getDialectConfidence(): number {
+    return loadVoiceProfile().dialectConfidence
+}
 
 /**
  * Start voice recognition for scene direction.
- * Uses Web Speech API → Lume English Mode → engine commands.
+ * Uses Web Speech API → Adaptive Voice Profile → Lume English Mode → engine commands.
  */
 export function startVoiceDirection(onCommand: (cmd: LumeCommand) => void): {
     stop: () => void
@@ -561,6 +643,10 @@ export function startVoiceDirection(onCommand: (cmd: LumeCommand) => void): {
         return { stop: () => { }, isListening: false }
     }
 
+    const profile = loadVoiceProfile()
+    profile.sessionCount++
+    saveVoiceProfile(profile)
+
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = false
@@ -569,10 +655,19 @@ export function startVoiceDirection(onCommand: (cmd: LumeCommand) => void): {
     recognition.onresult = (event: any) => {
         const last = event.results[event.results.length - 1]
         if (last.isFinal) {
-            const transcript = last[0].transcript.trim()
-            if (transcript) {
-                const intent = parseEnglish(transcript)
+            const rawTranscript = last[0].transcript.trim()
+            if (rawTranscript) {
+                // Apply adaptive voice profile before parsing
+                const cleaned = applyVoiceProfile(rawTranscript, profile)
+                const intent = parseEnglish(cleaned)
                 const command = compileIntent(intent)
+
+                // Boost dialect confidence on successful parse
+                if (intent.verb !== 'place' || cleaned.startsWith('place')) {
+                    profile.dialectConfidence = Math.min(100, profile.dialectConfidence + 0.5)
+                    saveVoiceProfile(profile)
+                }
+
                 onCommand(command)
             }
         }

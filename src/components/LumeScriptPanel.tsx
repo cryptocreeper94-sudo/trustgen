@@ -3,15 +3,16 @@
  * Features:
  * - Multi-line script editor with syntax hints
  * - Single-command input bar (REPL-style)
- * - Voice direction button (speak → execute)
+ * - Voice direction button (speak → execute) with Adaptive Voice Profiles
  * - Command output log with success/error states
  * - Verb autocomplete reference
+ * - Review Mode: human-in-the-loop command approval
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { InfoBubble } from './Tooltip'
 import {
     parseEnglish, compileIntent, compileScript, executeScript,
-    startVoiceDirection, getAvailableVerbs,
+    startVoiceDirection, getAvailableVerbs, getDialectConfidence,
     type LumeCommand, type LumeExecutionResult
 } from '../engine/LumeEngine'
 
@@ -24,6 +25,12 @@ interface CommandLog {
 
 type PanelMode = 'repl' | 'script' | 'voice' | 'reference'
 
+interface PendingReview {
+    input: string
+    command: LumeCommand
+    resolve: (approved: boolean) => void
+}
+
 export function LumeScriptPanel() {
     const [mode, setMode] = useState<PanelMode>('repl')
     const [replInput, setReplInput] = useState('')
@@ -31,6 +38,9 @@ export function LumeScriptPanel() {
     const [log, setLog] = useState<CommandLog[]>([])
     const [isVoiceActive, setIsVoiceActive] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
+    const [reviewMode, setReviewMode] = useState(false)
+    const [pendingReview, setPendingReview] = useState<PendingReview | null>(null)
+    const [dialectConfidence, setDialectConfidence] = useState(getDialectConfidence())
     const voiceRef = useRef<{ stop: () => void } | null>(null)
     const logEndRef = useRef<HTMLDivElement>(null)
 
@@ -39,6 +49,12 @@ export function LumeScriptPanel() {
         logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [log])
 
+    // Refresh dialect confidence periodically
+    useEffect(() => {
+        const interval = setInterval(() => setDialectConfidence(getDialectConfidence()), 3000)
+        return () => clearInterval(interval)
+    }, [])
+
     // Mock executor (in production, wired to actual engine stores)
     const mockExecutor = useCallback(async (cmd: LumeCommand) => {
         // Simulate engine execution
@@ -46,11 +62,31 @@ export function LumeScriptPanel() {
         return { executed: true, call: cmd.engineCall }
     }, [])
 
+    // Review gate: if review mode is on, show the command for approval before executing
+    const executeWithReview = useCallback(async (input: string, command: LumeCommand): Promise<boolean> => {
+        if (!reviewMode) return true
+
+        return new Promise<boolean>((resolve) => {
+            setPendingReview({ input, command, resolve })
+        })
+    }, [reviewMode])
+
     // Execute a single REPL command
     const executeCommand = useCallback(async (input: string) => {
         if (!input.trim()) return
         const intent = parseEnglish(input)
         const command = compileIntent(intent)
+
+        // Review gate
+        const approved = await executeWithReview(input, command)
+        if (!approved) {
+            setLog(prev => [...prev, {
+                input, command, result: {
+                    success: false, command, error: 'Rejected by reviewer', durationMs: 0,
+                }, timestamp: Date.now(),
+            }])
+            return
+        }
 
         const entry: CommandLog = { input, command, result: null, timestamp: Date.now() }
         setLog(prev => [...prev, entry])
@@ -72,7 +108,7 @@ export function LumeScriptPanel() {
                 i === prev.length - 1 ? { ...e, result: execResult } : e
             ))
         }
-    }, [mockExecutor])
+    }, [mockExecutor, executeWithReview])
 
     // Execute full script
     const runScript = useCallback(async () => {
@@ -122,6 +158,7 @@ export function LumeScriptPanel() {
             })
             voiceRef.current = voice
             setIsVoiceActive(voice.isListening)
+            setDialectConfidence(getDialectConfidence())
         }
     }, [isVoiceActive, mockExecutor])
 
@@ -137,7 +174,37 @@ export function LumeScriptPanel() {
                     <span className="lume-mode-badge">English Mode</span>
                     <InfoBubble text="Lume is Trust Layer's native language. English Mode lets you control TrustGen with natural language — type or speak commands like 'place a wooden desk in the center' and the engine executes them." />
                 </div>
+                {/* Review Mode toggle */}
+                <button
+                    className={`lume-review-toggle ${reviewMode ? 'active' : ''}`}
+                    onClick={() => setReviewMode(!reviewMode)}
+                    title={reviewMode ? 'Review Mode ON — commands require approval' : 'Review Mode OFF — commands execute immediately'}
+                >
+                    {reviewMode ? '🔒 Review' : '⚡ Auto'}
+                </button>
             </div>
+
+            {/* Pending Review Modal */}
+            {pendingReview && (
+                <div className="lume-review-modal">
+                    <div className="lume-review-header">Review Command</div>
+                    <div className="lume-review-input">▸ {pendingReview.input}</div>
+                    <div className="lume-review-explain">{pendingReview.command.explain}</div>
+                    <div className="lume-review-call">
+                        <code>{pendingReview.command.engineCall}({JSON.stringify(pendingReview.command.args, null, 2)})</code>
+                    </div>
+                    <div className="lume-review-actions">
+                        <button className="lume-review-approve" onClick={() => {
+                            pendingReview.resolve(true)
+                            setPendingReview(null)
+                        }}>✓ Approve & Run</button>
+                        <button className="lume-review-reject" onClick={() => {
+                            pendingReview.resolve(false)
+                            setPendingReview(null)
+                        }}>✗ Reject</button>
+                    </div>
+                </div>
+            )}
 
             {/* Mode tabs */}
             <div className="lume-tabs">
@@ -165,6 +232,7 @@ export function LumeScriptPanel() {
                             <div className="lume-log-empty">
                                 Type a command in English below.<br />
                                 Example: <em>"place a wooden table in the center"</em>
+                                {reviewMode && <><br /><span className="lume-review-hint">🔒 Review Mode is ON — commands will be shown for approval before executing</span></>}
                             </div>
                         )}
                         {log.map((entry, i) => (
@@ -174,7 +242,7 @@ export function LumeScriptPanel() {
                                 <div className="lume-log-call">{entry.command.engineCall}({JSON.stringify(entry.command.args).slice(0, 60)}…)</div>
                                 {entry.result && (
                                     <div className={`lume-log-status ${entry.result.success ? 'success' : 'error'}`}>
-                                        {entry.result.success ? '✓' : '✗'} {entry.result.durationMs.toFixed(0)}ms
+                                        {entry.result.success ? '✓' : '✗'} {entry.result.error || `${entry.result.durationMs.toFixed(0)}ms`}
                                     </div>
                                 )}
                             </div>
@@ -207,7 +275,7 @@ export function LumeScriptPanel() {
                         onChange={e => setScriptSource(e.target.value)}
                         className="lume-script-editor"
                         rows={12}
-                        placeholder="Write your Lume script here...&#10;Each line is one command.&#10;&#10;Example:&#10;set environment to office&#10;place a desk in the center&#10;place a chair behind the desk&#10;narrate 'Welcome to TrustGen'"
+                        placeholder={"Write your Lume script here...\nEach line is one command.\n\nExample:\nset environment to office\nplace a desk in the center\nplace a chair behind the desk\nnarrate 'Welcome to TrustGen'"}
                         spellCheck={false}
                     />
                     <div className="lume-script-actions">
@@ -239,6 +307,14 @@ export function LumeScriptPanel() {
                             ? 'Speak commands like "place a table" or "zoom in on the desk"'
                             : 'Click the button to start voice-controlled scene direction'
                         }</p>
+                        {/* Dialect Confidence Score */}
+                        <div className="lume-dialect-confidence">
+                            <span className="lume-dialect-label">Dialect Confidence</span>
+                            <div className="lume-dialect-bar">
+                                <div className="lume-dialect-fill" style={{ width: `${dialectConfidence}%` }} />
+                            </div>
+                            <span className="lume-dialect-score">{dialectConfidence.toFixed(0)}%</span>
+                        </div>
                     </div>
                     <button
                         className={`lume-voice-btn ${isVoiceActive ? 'recording' : ''}`}

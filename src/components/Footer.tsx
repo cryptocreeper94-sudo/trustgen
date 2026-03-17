@@ -67,6 +67,24 @@ export function Footer() {
                         <span className="badge-icon">🛡️</span>
                         <span>Protected by <strong>TrustShield.tech</strong></span>
                     </a>
+                    <a
+                        href="https://lume-lang.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-badge"
+                    >
+                        <span className="badge-icon">◈</span>
+                        <span>Built with <strong>Lume</strong></span>
+                    </a>
+                    <a
+                        href="https://dwsc.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-badge"
+                    >
+                        <span className="badge-icon">🔬</span>
+                        <span><strong>DWSC</strong> R&D</span>
+                    </a>
                 </div>
 
                 {/* Copyright + dev link */}
