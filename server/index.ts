@@ -220,6 +220,25 @@ async function initDB() {
             message TEXT,
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        -- ══════════════════════════════════════
+        --  LUME STUDIO SITES
+        -- ══════════════════════════════════════
+
+        CREATE TABLE IF NOT EXISTS studio_sites (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id),
+            subdomain TEXT UNIQUE,
+            custom_domain TEXT,
+            site_name TEXT NOT NULL DEFAULT 'My Website',
+            theme_id TEXT DEFAULT 'modern-dark',
+            pages JSONB NOT NULL DEFAULT '[]',
+            theme_config JSONB,
+            is_published BOOLEAN DEFAULT false,
+            published_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
     `)
     console.log('✅ Database tables initialized')
 }
@@ -2298,6 +2317,273 @@ app.post('/api/ai/text-to-3d', async (req, res) => {
         console.error('Text-to-3D error:', err)
         res.status(500).json({ error: err.message || 'Text-to-3D generation failed' })
     }
+})
+
+// ════════════════════════════════
+//  LUME STUDIO — SITE PUBLISHING
+// ════════════════════════════════
+
+/**
+ * Reserved subdomains — exact names that cannot be claimed.
+ */
+const RESERVED_SUBDOMAINS = new Set([
+    // ── Active ecosystem apps ──
+    'arbora', 'bomber', 'academy', 'studio',
+    'signalchat', 'torque', 'verdara',
+
+    // ── Ecosystem brand names ──
+    'dwtl', 'signal', 'lume', 'lume-lang', 'lumelang',
+    'chronicles', 'yourlegacy',
+    'garagebot', 'happyeats', 'lotopspro',
+    'orbitstaffing', 'getorby', 'orby',
+    'paintpros', 'nashpaintpros', 'pulse',
+    'strikeagent', 'thearcade', 'thevoid', 'intothevoid',
+    'tldriverconnect', 'tradeworksai',
+    'brewandboard', 'vedasolus',
+    'livfi', 'livfi-initiative',
+
+    // ── Infrastructure ──
+    'www', 'app', 'api', 'admin', 'mail', 'ftp', 'smtp', 'imap',
+    'ns1', 'ns2', 'dns', 'cdn', 'static', 'assets', 'media',
+    'staging', 'dev', 'test', 'preview', 'demo',
+    'auth', 'sso', 'login', 'signup', 'register',
+    'dashboard', 'panel', 'console', 'portal',
+    'blog', 'docs', 'help', 'support', 'status',
+    'shop', 'store', 'billing', 'pay', 'checkout',
+    'sites',
+])
+
+/**
+ * Reserved prefixes — ANY subdomain starting with these is blocked.
+ * This catches all "trust*" (trustgen, trusthome, trustgolf, trustvault...)
+ * and all "darkwave*" (darkwavestudios, darkwavepulse...)
+ * and all "guardian*" (guardianscanner, guardianscreener, guardianshield...)
+ * without needing to list each one individually.
+ */
+const RESERVED_PREFIXES = ['trust', 'darkwave', 'guardian']
+
+/** Check if a subdomain is reserved (exact match OR prefix match) */
+function isSubdomainReserved(sub: string): boolean {
+    if (RESERVED_SUBDOMAINS.has(sub)) return true
+    return RESERVED_PREFIXES.some(prefix => sub.startsWith(prefix))
+}
+
+/** Check if a subdomain is available */
+app.get('/api/studio-sites/check-subdomain/:subdomain', authMiddleware, async (req: any, res) => {
+    try {
+        const sub = req.params.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
+
+        if (sub.length < 3) return res.json({ available: false, reason: 'Too short (min 3 characters)' })
+        if (sub.length > 32) return res.json({ available: false, reason: 'Too long (max 32 characters)' })
+        if (isSubdomainReserved(sub)) return res.json({ available: false, reason: 'Reserved name' })
+
+        const existing = await pool.query('SELECT id FROM studio_sites WHERE subdomain = $1', [sub])
+        if (existing.rows.length > 0) return res.json({ available: false, reason: 'Already taken' })
+
+        res.json({ available: true, subdomain: sub, url: `https://${sub}.tlid.io` })
+    } catch (err) {
+        console.error('Subdomain check error:', err)
+        res.status(500).json({ error: 'Check failed' })
+    }
+})
+
+/** Save or update a Studio site */
+app.post('/api/studio-sites', authMiddleware, async (req: any, res) => {
+    try {
+        const { siteName, subdomain, pages, themeId, themeConfig } = req.body
+        if (!siteName || !pages) return res.status(400).json({ error: 'Missing site data' })
+
+        // Check for existing site by user
+        const existing = await pool.query(
+            'SELECT id FROM studio_sites WHERE user_id = $1 AND subdomain = $2',
+            [req.userId, subdomain || null]
+        )
+
+        if (existing.rows.length > 0) {
+            // Update existing
+            const result = await pool.query(
+                `UPDATE studio_sites SET
+                    site_name = $1, pages = $2, theme_id = $3,
+                    theme_config = $4, updated_at = NOW()
+                 WHERE id = $5 RETURNING *`,
+                [siteName, JSON.stringify(pages), themeId, JSON.stringify(themeConfig), existing.rows[0].id]
+            )
+            return res.json(result.rows[0])
+        }
+
+        // Create new
+        const result = await pool.query(
+            `INSERT INTO studio_sites (user_id, site_name, subdomain, pages, theme_id, theme_config)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [req.userId, siteName, subdomain || null, JSON.stringify(pages), themeId, JSON.stringify(themeConfig)]
+        )
+        res.json(result.rows[0])
+    } catch (err: any) {
+        if (err.code === '23505') return res.status(409).json({ error: 'Subdomain already taken' })
+        console.error('Save site error:', err)
+        res.status(500).json({ error: 'Failed to save site' })
+    }
+})
+
+/** Publish a Studio site — make it live at subdomain.tlid.io */
+app.post('/api/studio-sites/:id/publish', authMiddleware, async (req: any, res) => {
+    try {
+        const { subdomain } = req.body
+        const sub = subdomain?.toLowerCase().replace(/[^a-z0-9-]/g, '')
+
+        if (!sub || sub.length < 3) return res.status(400).json({ error: 'Invalid subdomain' })
+        if (isSubdomainReserved(sub)) return res.status(400).json({ error: 'Reserved subdomain' })
+
+        // Verify ownership
+        const site = await pool.query(
+            'SELECT id FROM studio_sites WHERE id = $1 AND user_id = $2',
+            [req.params.id, req.userId]
+        )
+        if (site.rows.length === 0) return res.status(404).json({ error: 'Site not found' })
+
+        // Check subdomain isn't taken by another user
+        const conflict = await pool.query(
+            'SELECT id, user_id FROM studio_sites WHERE subdomain = $1 AND id != $2',
+            [sub, req.params.id]
+        )
+        if (conflict.rows.length > 0) return res.status(409).json({ error: 'Subdomain already taken' })
+
+        // Publish
+        const result = await pool.query(
+            `UPDATE studio_sites SET
+                subdomain = $1, is_published = true, published_at = NOW(), updated_at = NOW()
+             WHERE id = $2 RETURNING *`,
+            [sub, req.params.id]
+        )
+
+        res.json({
+            ...result.rows[0],
+            url: `https://${sub}.tlid.io`,
+        })
+    } catch (err: any) {
+        if (err.code === '23505') return res.status(409).json({ error: 'Subdomain already taken' })
+        console.error('Publish error:', err)
+        res.status(500).json({ error: 'Failed to publish' })
+    }
+})
+
+/** Unpublish a site */
+app.post('/api/studio-sites/:id/unpublish', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query(
+            `UPDATE studio_sites SET is_published = false, updated_at = NOW()
+             WHERE id = $1 AND user_id = $2`,
+            [req.params.id, req.userId]
+        )
+        res.json({ success: true })
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to unpublish' })
+    }
+})
+
+/** List user's Studio sites */
+app.get('/api/studio-sites', authMiddleware, async (req: any, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM studio_sites WHERE user_id = $1 ORDER BY updated_at DESC',
+            [req.userId]
+        )
+        res.json(result.rows.map((s: any) => ({
+            id: s.id,
+            siteName: s.site_name,
+            subdomain: s.subdomain,
+            customDomain: s.custom_domain,
+            themeId: s.theme_id,
+            pages: s.pages,
+            themeConfig: s.theme_config,
+            isPublished: s.is_published,
+            publishedAt: s.published_at,
+            url: s.is_published && s.subdomain ? `https://${s.subdomain}.tlid.io` : null,
+            createdAt: s.created_at,
+            updatedAt: s.updated_at,
+        })))
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to list sites' })
+    }
+})
+
+/** Delete a Studio site */
+app.delete('/api/studio-sites/:id', authMiddleware, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM studio_sites WHERE id = $1 AND user_id = $2', [req.params.id, req.userId])
+        res.status(204).end()
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete site' })
+    }
+})
+
+/**
+ * Serve a published site by subdomain.
+ * In production, this is hit by the *.tlid.io wildcard.
+ * Reads the subdomain from the Host header and serves the matching site.
+ */
+app.get('/api/studio-sites/serve/:subdomain', async (req, res) => {
+    try {
+        const sub = req.params.subdomain.toLowerCase()
+        const result = await pool.query(
+            'SELECT * FROM studio_sites WHERE subdomain = $1 AND is_published = true',
+            [sub]
+        )
+        if (result.rows.length === 0) {
+            return res.status(404).send(`<html><body style="background:#0a0a0f;color:#fff;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><h1>Site Not Found</h1><p style="color:#888">This subdomain is not active on tlid.io</p><a href="https://trustgen.tlid.io/studio" style="color:#06b6d4">Build your own →</a></div></body></html>`)
+        }
+
+        const site = result.rows[0]
+        const pages = typeof site.pages === 'string' ? JSON.parse(site.pages) : site.pages
+        const theme = typeof site.theme_config === 'string' ? JSON.parse(site.theme_config) : (site.theme_config || {})
+        const homePage = pages.find((p: any) => p.slug === '/') || pages[0]
+
+        if (!homePage) return res.status(404).send('No pages')
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${site.site_name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: ${theme.colors?.primary || '#06b6d4'};
+  --secondary: ${theme.colors?.secondary || '#14b8a6'};
+  --accent: ${theme.colors?.accent || '#22d3ee'};
+  --bg: ${theme.colors?.background || '#0a0a0f'};
+  --surface: ${theme.colors?.surface || '#141420'};
+  --text: ${theme.colors?.text || '#eaeaf2'};
+  --text-secondary: ${theme.colors?.textSecondary || '#8888a8'};
+  --font-heading: ${theme.fontHeading || "'Inter', sans-serif"};
+  --font-body: ${theme.fontBody || "'Inter', sans-serif"};
+  --radius: ${theme.borderRadius || '12px'};
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); line-height: 1.2; }
+img { max-width: 100%; height: auto; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+${homePage.css || ''}
+</style>
+</head>
+<body>
+${homePage.html || ''}
+</body>
+</html>`
+
+        res.type('html').send(html)
+    } catch (err) {
+        console.error('Serve site error:', err)
+        res.status(500).send('Server error')
+    }
+})
+
+/** Get list of reserved subdomains (public, for client validation) */
+app.get('/api/studio-sites/reserved', (_req, res) => {
+    res.json({ reserved: Array.from(RESERVED_SUBDOMAINS) })
 })
 
 // ════════════════════════════════

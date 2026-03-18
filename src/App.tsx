@@ -27,6 +27,7 @@ import { HamburgerMenu } from './components/HamburgerMenu'
 import { InvestorPage } from './pages/InvestorPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { AffiliatePage } from './pages/AffiliatePage'
+import { SiteBuilderPage } from './pages/SiteBuilderPage'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -161,6 +162,9 @@ export default function App() {
         } />
         <Route path="/affiliate" element={
           <ProtectedRoute><AffiliatePage /></ProtectedRoute>
+        } />
+        <Route path="/studio" element={
+          <ProtectedRoute><SiteBuilderPage /></ProtectedRoute>
         } />
 
         {/* Referral capture route */}

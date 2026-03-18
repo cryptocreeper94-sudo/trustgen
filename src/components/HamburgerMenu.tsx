@@ -18,6 +18,7 @@ const NAV_GROUPS: NavGroup[] = [
     {
         label: 'Create', icon: '🎨',
         links: [
+            { label: 'Lume Studio', path: '/studio', icon: '◈', auth: true },
             { label: '3D Editor', path: '/editor', icon: '🎬', auth: true },
             { label: 'Dashboard', path: '/dashboard', icon: '📊', auth: true },
             { label: 'Asset Pipeline', path: '/workspace', icon: '📦', auth: true },
