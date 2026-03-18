@@ -1,5 +1,6 @@
 /* ====== TrustGen — Global Footer ====== */
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useRef } from 'react'
 
 const FOOTER_LINKS = [
     { label: 'Explore', path: '/explore' },
@@ -12,6 +13,18 @@ const FOOTER_LINKS = [
 export function Footer() {
     const navigate = useNavigate()
     const location = useLocation()
+    const dwscClickRef = useRef({ count: 0, timer: null as any });
+    const handleDWSCClick = () => {
+        dwscClickRef.current.count++;
+        if (dwscClickRef.current.count === 3) {
+            dwscClickRef.current.count = 0;
+            clearTimeout(dwscClickRef.current.timer);
+            window.open('https://dwsc.io/#portal', '_blank');
+        } else {
+            clearTimeout(dwscClickRef.current.timer);
+            dwscClickRef.current.timer = setTimeout(() => { dwscClickRef.current.count = 0; }, 800);
+        }
+    };
 
     // Don't show footer on editor page
     if (location.pathname.startsWith('/editor')) return null
@@ -76,15 +89,14 @@ export function Footer() {
                         <span className="badge-icon">◈</span>
                         <span>Built with <strong>Lume</strong></span>
                     </a>
-                    <a
-                        href="https://dwsc.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <span
+                        onClick={handleDWSCClick}
                         className="footer-badge"
+                        style={{ cursor: 'default', userSelect: 'none' }}
                     >
                         <span className="badge-icon">🔬</span>
-                        <span><strong>DWSC</strong> R&D</span>
-                    </a>
+                        <span><strong>◈ DWSC</strong> R&D</span>
+                    </span>
                 </div>
 
                 {/* Copyright + dev link */}
