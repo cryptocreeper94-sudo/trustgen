@@ -306,7 +306,7 @@ export const useSiteBuilderStore = create<SiteBuilderState>((set, get) => ({
             // Ecosystem brand names
             'dwtl', 'signal', 'lume', 'lume-lang', 'lumelang',
             'chronicles', 'yourlegacy',
-            'garagebot', 'happyeats', 'lotopspro', 'orbitstaffing', 'getorby', 'orby',
+            'garagebot', 'happyeats', 'orbitstaffing', 'getorby', 'orby',
             'paintpros', 'nashpaintpros', 'pulse', 'strikeagent', 'thearcade', 'thevoid', 'intothevoid',
             'tldriverconnect', 'tradeworksai', 'brewandboard', 'vedasolus',
             'livfi', 'livfi-initiative',

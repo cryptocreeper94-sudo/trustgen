@@ -258,6 +258,12 @@ export function DevPortalPage() {
                             <a href="https://github.com/cryptocreeper94-sudo/trustgen" target="_blank" rel="noopener noreferrer" className="btn btn-sm">
                                 🐙 GitHub Repo
                             </a>
+                            <a href="https://darkwavestudios.io/widget-builder" target="_blank" rel="noopener noreferrer" className="btn btn-sm">
+                                ◆ Widget Builder
+                            </a>
+                            <a href="https://darkwavestudios.io/developers/marketplace" target="_blank" rel="noopener noreferrer" className="btn btn-sm">
+                                🛒 Widget Marketplace
+                            </a>
                         </div>
                     </>
                 )}

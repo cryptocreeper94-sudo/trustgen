@@ -2334,7 +2334,7 @@ const RESERVED_SUBDOMAINS = new Set([
     // ── Ecosystem brand names ──
     'dwtl', 'signal', 'lume', 'lume-lang', 'lumelang',
     'chronicles', 'yourlegacy',
-    'garagebot', 'happyeats', 'lotopspro',
+    'garagebot', 'happyeats',
     'orbitstaffing', 'getorby', 'orby',
     'paintpros', 'nashpaintpros', 'pulse',
     'strikeagent', 'thearcade', 'thevoid', 'intothevoid',
