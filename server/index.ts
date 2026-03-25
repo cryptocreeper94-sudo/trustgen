@@ -6,9 +6,17 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { Pool } from 'pg'
+import { registerHallmarkRoutes } from "./hallmark.js";
+import { registerAffiliateRoutes } from "./affiliate.js";
+import { registerEcosystemRoutes } from "./ecosystem.js";
 
 // ── Environment ──
 const PORT = process.env.PORT || 4000
+
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    console.error('FATAL: JWT_SECRET must be set in production')
+    process.exit(1)
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'trustgen-dev-secret-change-me'
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID || ''
@@ -33,9 +41,6 @@ async function initDB() {
             features JSONB DEFAULT '{"aiGeneration":true,"particleSystem":true,"postProcessing":true,"maxProjects":100,"maxAssets":500}',
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
-import { registerHallmarkRoutes } from "./hallmark";
-import { registerAffiliateRoutes } from "./affiliate";
-import { registerEcosystemRoutes } from "./ecosystem";
 
         CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -252,6 +257,10 @@ app.use(helmet())
 app.use(cors({ origin: CLIENT_URL, credentials: true }))
 app.use(express.json())
 
+registerHallmarkRoutes(app)
+registerAffiliateRoutes(app)
+registerEcosystemRoutes(app)
+
 // ── Auth Middleware ──
 function authMiddleware(req: any, res: any, next: any) {
     const token = req.headers.authorization?.replace('Bearer ', '')
@@ -453,6 +462,9 @@ app.post('/api/auth/login', async (req, res) => {
             }
         } catch (ecoErr: any) {
             console.log('Ecosystem fallback skipped:', ecoErr.message)
+            if (ecoErr.message.includes('timeout') || ecoErr.message.includes('unreachable')) {
+                return res.status(503).json({ error: 'Trust Layer SSO is temporarily unreachable (Degraded Mode). Local credentials also failed.' })
+            }
         }
 
         res.status(401).json({ error: 'Invalid credentials' })
