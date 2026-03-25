@@ -34,34 +34,50 @@ function hmacHeaders(method: string, path: string, body?: any): Record<string, s
 // ── Generic HMAC-Authenticated Request ──
 async function hmacRequest<T = any>(method: string, path: string, body?: any): Promise<T> {
     const headers = hmacHeaders(method, path, body)
-    const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    })
-    if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Trust Layer API error (${res.status}): ${text}`)
+    try {
+        const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+            signal: AbortSignal.timeout(5000)
+        })
+        if (!res.ok) {
+            const text = await res.text()
+            throw new Error(`Trust Layer API error (${res.status}): ${text}`)
+        }
+        if (res.status === 204) return undefined as any
+        return res.json()
+    } catch (err: any) {
+        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+            throw new Error('Trust Layer API timeout: Service is unreachable')
+        }
+        throw err
     }
-    if (res.status === 204) return undefined as any
-    return res.json()
 }
 
 // ── Bearer-Authenticated Request (for user-scoped calls) ──
 async function bearerRequest<T = any>(method: string, path: string, ecosystemToken: string, body?: any): Promise<T> {
-    const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
-        method,
-        headers: {
-            'Authorization': `Bearer ${ecosystemToken}`,
-            'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    })
-    if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Trust Layer Bearer error (${res.status}): ${text}`)
+    try {
+        const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
+            method,
+            headers: {
+                'Authorization': `Bearer ${ecosystemToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: body ? JSON.stringify(body) : undefined,
+            signal: AbortSignal.timeout(5000)
+        })
+        if (!res.ok) {
+            const text = await res.text()
+            throw new Error(`Trust Layer Bearer error (${res.status}): ${text}`)
+        }
+        return res.json()
+    } catch (err: any) {
+        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+            throw new Error('Trust Layer API timeout: Service is unreachable')
+        }
+        throw err
     }
-    return res.json()
 }
 
 // ════════════════════════════════════

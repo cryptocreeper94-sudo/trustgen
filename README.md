@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# TrustGen 3D Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**TrustGen** is a browser-based, procedural 3D generation and cinematic platform deployed as part of the Trust Layer ecosystem.
 
-Currently, two official plugins are available:
+Replacing pure API-dependent generation (formerly Meshy.ai), TrustGen features a completely self-contained procedural node-based generation engine capable of assembling complex immersive environments dynamically entirely on the client. 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Core Capabilities
+- **Procedural Composer Engine**: Combines 3D primitives (Box, Sphere, Cone, Plane, Torus) into complex `THREE.Group` nested structures via `PropRecipe` blueprints for 87+ bespoke architectural and prop assets.
+- **Inverse Kinematics (IK) Animation**: Integrated character animation suite (note: currently awaiting rigging compatibility for procedurally composed multi-mesh entities).
+- **Lume Studio Integration**: A built-in no-code IDE generating interactive sites published directly to `.tlid.io` subdomains.
+- **Ecosystem Sync**: Seamless integration with TrustVault (`dwtl.io`) via HMAC-SHA256 identity exchange supporting Single Sign-On (SSO) and biometric Passkey authentication.
 
-## React Compiler
+## Tech Stack
+- Frontend: **React + Vite**, **React Three Fiber (R3F)**, **GSAP** for UI/cinematics, **Zustand** + **Immer** for state management.
+- Backend: **Node + Express** integrated natively via Vite middleware.
+- Database: **PostgreSQL** via `pg` (supporting multi-tenant configurations).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting Started
 
-## Expanding the ESLint configuration
+1. Copy `.env.example` to `.env` and configure your local connections:
+   ```bash
+   cp server/.env.example server/.env
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+2. Start the server and client concurrently:
+   ```bash
+   npm run dev
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Security Priorities
+The server operates a strict environment guard in `production`. **TrustGen will refuse to boot if `JWT_SECRET` is not provided.** Do not rely on dev default secrets.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+For SSO failures, TrustGen is designed to automatically degrade to local credentials, communicating a 503 HTTP `Service Temporarily Unavailable` if `dwtl.io` times out.

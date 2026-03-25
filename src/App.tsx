@@ -122,6 +122,9 @@ function EditorLayout() {
   )
 }
 
+import { PresaleBanner } from './components/PresaleBanner'
+import { EcosystemAccountHub } from './components/EcosystemAccountHub'
+
 /* ── Root App with Router ── */
 export default function App() {
   const checkAuth = useAuthStore(s => s.checkAuth)
@@ -132,6 +135,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <PresaleBanner />
+      <EcosystemAccountHub />
       <Routes>
         {/* Public routes */}
         <Route path="/explore" element={<ExplorePage />} />
