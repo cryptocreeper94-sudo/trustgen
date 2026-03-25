@@ -33,6 +33,9 @@ async function initDB() {
             features JSONB DEFAULT '{"aiGeneration":true,"particleSystem":true,"postProcessing":true,"maxProjects":100,"maxAssets":500}',
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
+import { registerHallmarkRoutes } from "./hallmark";
+import { registerAffiliateRoutes } from "./affiliate";
+import { registerEcosystemRoutes } from "./ecosystem";
 
         CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
