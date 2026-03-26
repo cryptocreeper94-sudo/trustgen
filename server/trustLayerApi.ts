@@ -6,6 +6,31 @@ import crypto from 'crypto'
 const TRUSTLAYER_BASE = process.env.TRUSTLAYER_BASE_URL || 'https://dwtl.io'
 const API_KEY = process.env.TRUSTLAYER_API_KEY || ''
 const API_SECRET = process.env.TRUSTLAYER_API_SECRET || ''
+const REQUEST_TIMEOUT_MS = 5000
+
+// ── Circuit Breaker ──────────────────────────────────────────
+const CIRCUIT_BREAKER = {
+  failures: 0,
+  threshold: 3,
+  cooldownMs: 60_000,
+  lastFailureAt: 0,
+  get isOpen(): boolean {
+    if (this.failures < this.threshold) return false;
+    if (Date.now() - this.lastFailureAt > this.cooldownMs) {
+      this.failures = 0;
+      return false;
+    }
+    return true;
+  },
+  recordFailure(): void {
+    this.failures++;
+    this.lastFailureAt = Date.now();
+    console.warn(`[TL API] Circuit breaker failure #${this.failures}/${this.threshold}`);
+  },
+  recordSuccess(): void { this.failures = 0; }
+};
+
+export { CIRCUIT_BREAKER as trustLayerCircuitBreaker };
 
 // ── HMAC Signature Construction ──
 function createHmacSignature(method: string, path: string, body?: any): {
@@ -33,23 +58,27 @@ function hmacHeaders(method: string, path: string, body?: any): Record<string, s
 
 // ── Generic HMAC-Authenticated Request ──
 async function hmacRequest<T = any>(method: string, path: string, body?: any): Promise<T> {
+    if (CIRCUIT_BREAKER.isOpen) throw new Error('Trust Layer circuit breaker open — service temporarily unavailable')
     const headers = hmacHeaders(method, path, body)
     try {
         const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         })
         if (!res.ok) {
             const text = await res.text()
+            CIRCUIT_BREAKER.recordFailure()
             throw new Error(`Trust Layer API error (${res.status}): ${text}`)
         }
+        CIRCUIT_BREAKER.recordSuccess()
         if (res.status === 204) return undefined as any
         return res.json()
     } catch (err: any) {
         if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-            throw new Error('Trust Layer API timeout: Service is unreachable')
+            CIRCUIT_BREAKER.recordFailure()
+            throw new Error(`Trust Layer API timeout after ${REQUEST_TIMEOUT_MS}ms: ${path}`)
         }
         throw err
     }
@@ -57,6 +86,7 @@ async function hmacRequest<T = any>(method: string, path: string, body?: any): P
 
 // ── Bearer-Authenticated Request (for user-scoped calls) ──
 async function bearerRequest<T = any>(method: string, path: string, ecosystemToken: string, body?: any): Promise<T> {
+    if (CIRCUIT_BREAKER.isOpen) throw new Error('Trust Layer circuit breaker open — service temporarily unavailable')
     try {
         const res = await fetch(`${TRUSTLAYER_BASE}${path}`, {
             method,
@@ -65,16 +95,19 @@ async function bearerRequest<T = any>(method: string, path: string, ecosystemTok
                 'Content-Type': 'application/json',
             },
             body: body ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         })
         if (!res.ok) {
             const text = await res.text()
+            CIRCUIT_BREAKER.recordFailure()
             throw new Error(`Trust Layer Bearer error (${res.status}): ${text}`)
         }
+        CIRCUIT_BREAKER.recordSuccess()
         return res.json()
     } catch (err: any) {
         if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-            throw new Error('Trust Layer API timeout: Service is unreachable')
+            CIRCUIT_BREAKER.recordFailure()
+            throw new Error(`Trust Layer Bearer timeout after ${REQUEST_TIMEOUT_MS}ms: ${path}`)
         }
         throw err
     }
@@ -150,6 +183,7 @@ export async function verifySSOToken(ecosystemToken: string): Promise<{
             'x-app-signature': signature,
             'x-app-timestamp': timestamp,
         },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
     if (!res.ok) throw new Error('SSO verification failed')
     return res.json()
@@ -342,6 +376,7 @@ export async function trackReferral(referralHash: string): Promise<any> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ referralHash, platform: 'trustgen' }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
     return res.json()
 }
@@ -365,6 +400,8 @@ export async function getNetworkStats(): Promise<{
     tps: number; consensus: string; blockTime: string
     validators: number; totalStake: string; chainHeight: number
 }> {
-    const res = await fetch(`${TRUSTLAYER_BASE}/api/network/stats`)
+    const res = await fetch(`${TRUSTLAYER_BASE}/api/network/stats`, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
     return res.json()
 }
