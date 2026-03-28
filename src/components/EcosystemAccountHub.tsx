@@ -13,11 +13,11 @@ interface Bonus { id:string; app:string; icon:string; headline:string; reward:st
 const BONUSES: Bonus[] = [
   { id:'chronicles',app:'Chronicles',icon:'📜',headline:'Legacy Founders Drive',reward:'Refer a friend to Chronicles',sigAmount:500,multiplier:'2×',perk:'Founder Badge',url:'https://yourlegacy.io/chronicles/login',refParam:'ref',accent:'#06b6d4',glow:'rgba(6,182,212,0.06)',start:'2026-03-24',end:'2026-04-07' },
   { id:'orbit',app:'ORBIT Staffing',icon:'🌐',headline:'ORBIT Member Drive',reward:'Onboard someone to ORBIT',sigAmount:1000,multiplier:'3×',perk:'Hallmark boost',url:'https://orbitstaffing.io',refParam:'ref',accent:'#8b5cf6',glow:'rgba(139,92,246,0.06)',start:'2026-04-07',end:'2026-04-21' },
-  { id:'trustgen',app:'TrustGen 3D',icon:'🎨',headline:'Creator Collective',reward:'Bring 3 users to TrustGen',sigAmount:750,multiplier:'2×',perk:'3D asset pack',url:'https://trustgen.tlid.io/explore',refParam:'ref',accent:'#f43f5e',glow:'rgba(244,63,94,0.06)',start:'2026-04-21',end:'2026-05-05' },
-  { id:'bomber',app:'Bomber 3D',icon:'⛳',headline:'Long Drive Challenge',reward:'Invite players to Bomber',sigAmount:300,multiplier:'2×',perk:'Pro skin',url:'https://bomber.tlid.io',refParam:'ref',accent:'#10b981',glow:'rgba(16,185,129,0.06)',start:'2026-05-05',end:'2026-05-19' },
-  { id:'vault',app:'TrustVault',icon:'🔐',headline:'Secure the Network',reward:'Refer friends to TrustVault',sigAmount:600,multiplier:'2×',perk:'Vault tier up',url:'https://trustvault.tlid.io',refParam:'ref',accent:'#06b6d4',glow:'rgba(6,182,212,0.06)',start:'2026-05-19',end:'2026-06-02' },
+  { id:'trustgen',app:'TrustGen 3D',icon:'🎨',headline:'Creator Collective',reward:'Bring 3 users to TrustGen',sigAmount:750,multiplier:'2×',perk:'3D asset pack',url:'https://trustgen.design/explore',refParam:'ref',accent:'#f43f5e',glow:'rgba(244,63,94,0.06)',start:'2026-04-21',end:'2026-05-05' },
+  { id:'bomber',app:'Trust Golf',icon:'⛳',headline:'Long Drive Challenge',reward:'Invite players to Trust Golf',sigAmount:300,multiplier:'2×',perk:'Pro skin',url:'https://trustgolf.app',refParam:'ref',accent:'#10b981',glow:'rgba(16,185,129,0.06)',start:'2026-05-05',end:'2026-05-19' },
+  { id:'vault',app:'TrustVault',icon:'🔐',headline:'Secure the Network',reward:'Refer friends to TrustVault',sigAmount:600,multiplier:'2×',perk:'Vault tier up',url:'https://trustvault.studio',refParam:'ref',accent:'#06b6d4',glow:'rgba(6,182,212,0.06)',start:'2026-05-19',end:'2026-06-02' },
   { id:'void',app:'THE VOID',icon:'🕳️',headline:'Void Explorers',reward:'Bring friends into THE VOID',sigAmount:400,multiplier:'2×',perk:'Void ID skin',url:'https://intothevoid.app',refParam:'ref',accent:'#8b5cf6',glow:'rgba(139,92,246,0.06)',start:'2026-06-02',end:'2026-06-16' },
-  { id:'lotops',app:'Lot Ops Pro',icon:'🚗',headline:'Fleet Expansion',reward:'Onboard a dealer',sigAmount:1500,multiplier:'5×',perk:'Analytics unlock',url:'https://lotopspro.io',refParam:'ref',accent:'#f59e0b',glow:'rgba(245,158,11,0.06)',start:'2026-06-16',end:'2026-06-30' },
+  { id:'lotops',app:'Lot Ops Pro',icon:'🚗',headline:'Fleet Expansion',reward:'Onboard a dealer',sigAmount:1500,multiplier:'5×',perk:'Analytics unlock',url:'https://lotopspro.com',refParam:'ref',accent:'#f59e0b',glow:'rgba(245,158,11,0.06)',start:'2026-06-16',end:'2026-06-30' },
   { id:'lume',app:'Lume',icon:'💡',headline:'Language Pioneers',reward:'Invite devs to Lume',sigAmount:500,multiplier:'2×',perk:'v1.0 early access',url:'https://lume-lang.org',refParam:'ref',accent:'#06b6d4',glow:'rgba(6,182,212,0.06)',start:'2026-06-30',end:'2026-07-14' },
 ];
 function getBonus(): Bonus { const t=new Date().toISOString().split('T')[0]; const m=BONUSES.find(b=>t>=b.start&&t<b.end); if(m)return m; const y=new Date(),s=new Date(y.getFullYear(),0,1),w=Math.ceil(((y.getTime()-s.getTime())/864e5+s.getDay()+1)/7); return BONUSES[w%BONUSES.length]; }
@@ -25,9 +25,9 @@ function timeLeft(b:Bonus):string { const d=new Date(b.end).getTime()-Date.now()
 function refUrl(b:Bonus,u?:string):string { const s=b.url.includes('?')?'&':'?'; return `${b.url}${s}${b.refParam}=${u||'eco'}&bonus=${b.id}`; }
 
 const APPS = [
-  {n:'Trust Hub',u:'https://trusthub.tlid.io',i:'🛡️'},{n:'TrustGen 3D',u:'https://trustgen.tlid.io',i:'🎨'},{n:'TrustVault',u:'https://trustvault.tlid.io',i:'🔐'},
+  {n:'Trust Hub',u:'https://trusthub.tlid.io',i:'🛡️'},{n:'TrustGen 3D',u:'https://trustgen.design',i:'🎨'},{n:'TrustVault',u:'https://trustvault.studio',i:'🔐'},
   {n:'Chronicles',u:'https://yourlegacy.io',i:'📜'},{n:'ORBIT',u:'https://orbitstaffing.io',i:'🌐'},{n:'Lume',u:'https://lume-lang.org',i:'💡'},
-  {n:'Bomber 3D',u:'https://bomber.tlid.io',i:'⛳'},{n:'THE VOID',u:'https://intothevoid.app',i:'🕳️'},{n:'Lot Ops',u:'https://lotopspro.io',i:'🚗'},
+  {n:'Trust Golf',u:'https://trustgolf.app',i:'⛳'},{n:'THE VOID',u:'https://intothevoid.app',i:'🕳️'},{n:'Lot Ops',u:'https://lotopspro.com',i:'🚗'},
   {n:'SignalCast',u:'https://signalcast.tlid.io',i:'📡'},{n:'Studio',u:'https://studio.tlid.io',i:'🎛️'},
 ];
 
