@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEngineStore } from '../store'
 import { triggerModelImport } from './ModelImporter'
+import { evaluateLumeIntent } from '../engine/lumeResolver'
 
 interface Command {
     id: string
@@ -16,6 +17,8 @@ export function CommandPalette() {
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
     const [activeIndex, setActiveIndex] = useState(0)
+    const [lumeIntent, setLumeIntent] = useState<any>(null)
+    const [isListening, setIsListening] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
     const commands: Command[] = [
@@ -81,24 +84,70 @@ export function CommandPalette() {
         } else if (e.key === 'ArrowUp') {
             e.preventDefault()
             setActiveIndex(i => Math.max(i - 1, 0))
-        } else if (e.key === 'Enter' && filtered[activeIndex]) {
+        } else if (e.key === 'Enter' && filtered.length > 0 && filtered[activeIndex]) {
             executeCommand(filtered[activeIndex])
+        } else if (e.key === 'Enter' && filtered.length === 0 && lumeIntent) {
+            e.preventDefault()
+            lumeIntent.action()
+            setOpen(false)
+            setQuery('')
+            setLumeIntent(null)
         }
     }
+
+    // ── Lume Auditory Mode (Voice-to-Code) ──
+    const startListening = () => {
+        // @ts-ignore
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onresult = (e: any) => {
+            const transcript = e.results[0][0].transcript;
+            setQuery(transcript);
+            setLumeIntent(evaluateLumeIntent(transcript));
+        };
+        
+        recognition.start();
+    };
 
     if (!open) return null
 
     return (
         <div className="command-palette-overlay" onClick={() => setOpen(false)}>
             <div className="command-palette" onClick={e => e.stopPropagation()}>
-                <input
-                    ref={inputRef}
-                    className="command-palette-input"
-                    placeholder="Search commands..."
-                    value={query}
-                    onChange={e => { setQuery(e.target.value); setActiveIndex(0) }}
-                    onKeyDown={handleKeyDown}
-                />
+                <div className="relative">
+                    <input
+                        ref={inputRef}
+                        className="command-palette-input"
+                        placeholder="Search commands or talk to Lume..."
+                        value={query}
+                        onChange={e => { 
+                            setQuery(e.target.value); 
+                            setActiveIndex(0);
+                            // Live Lume compilation
+                            if (e.target.value.trim().length > 3) {
+                                setLumeIntent(evaluateLumeIntent(e.target.value));
+                            } else {
+                                setLumeIntent(null);
+                            }
+                        }}
+                        onKeyDown={handleKeyDown}
+                        style={{ paddingRight: '40px' }}
+                    />
+                    <button 
+                        onClick={startListening}
+                        className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isListening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'}`}
+                        title="Voice-to-Code (Speak to Lume)"
+                    >
+                        🎤
+                    </button>
+                </div>
                 <div className="command-palette-results">
                     {filtered.map((cmd, i) => (
                         <div
@@ -112,7 +161,31 @@ export function CommandPalette() {
                             {cmd.shortcut && <span className="command-item-shortcut">{cmd.shortcut}</span>}
                         </div>
                     ))}
-                    {filtered.length === 0 && (
+                    {filtered.length === 0 && lumeIntent && (
+                        <div 
+                            className="command-item active border border-cyan-500/30 bg-cyan-500/10"
+                            onClick={() => {
+                                lumeIntent.action();
+                                setOpen(false);
+                                setQuery('');
+                            }}
+                        >
+                            <span className="command-item-icon">✨</span>
+                            <div className="flex flex-col">
+                                <span className="command-item-label text-cyan-300">Lume: {lumeIntent.intent}</span>
+                                <span className="text-[10px] text-cyan-500/60 uppercase tracking-widest mt-1">
+                                    Resolved by: {lumeIntent.layer} ({(lumeIntent.confidence * 100).toFixed(0)}%)
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                    {filtered.length === 0 && query.length > 5 && !lumeIntent && (
+                        <div style={{ padding: '16px 20px' }}>
+                            <div className="text-amber-400 text-sm font-semibold mb-1">⚠ Disambiguation Required</div>
+                            <div className="text-xs text-white/50">Lume could not resolve this intent. Try rephrasing your command.</div>
+                        </div>
+                    )}
+                    {filtered.length === 0 && query.length <= 5 && (
                         <div style={{ padding: '16px 20px', color: 'var(--text-muted)', fontSize: 13 }}>
                             No commands found
                         </div>
