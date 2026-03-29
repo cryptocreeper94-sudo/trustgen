@@ -126,6 +126,7 @@ import { PresaleBanner } from './components/PresaleBanner'
 import { EcosystemAccountHub } from './components/EcosystemAccountHub'
 import { AmbientOrbs } from './components/AmbientOrbs'
 import { CustomCursor } from './components/CustomCursor'
+import { PWAInstallBanner } from './components/PWAInstallBanner'
 
 /* ── Root App with Router ── */
 export default function App() {
@@ -188,6 +189,7 @@ export default function App() {
       <ToastContainer />
       <SignalChatWidget />
       <HamburgerMenu />
+      <PWAInstallBanner />
     </BrowserRouter>
   )
 }

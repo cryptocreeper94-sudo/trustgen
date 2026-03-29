@@ -1,0 +1,53 @@
+{
+  "id": "trustgen.design",
+  "name": "TrustGen — 3D Creation Engine",
+  "short_name": "TrustGen",
+  "description": "AI-powered 3D creation engine with Meshy.ai integration, animation timeline, Monaco IDE, and blockchain provenance. Build, animate, and export stunning 3D scenes in the browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c1222",
+  "theme_color": "#00ffff",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["design", "entertainment", "utilities"],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/trustgen-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/trustgen-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/splash/trustgen-splash.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "TrustGen 3D Workspace"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Scene",
+      "short_name": "New",
+      "url": "/workspace",
+      "description": "Create a new 3D scene"
+    },
+    {
+      "name": "AI Generate",
+      "short_name": "AI",
+      "url": "/workspace?panel=ai",
+      "description": "Generate 3D objects with AI"
+    }
+  ]
+}
