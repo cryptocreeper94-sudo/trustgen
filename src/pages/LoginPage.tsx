@@ -2,6 +2,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import KenBurnsBackground from '../components/KenBurnsBackground'
 
 export function LoginPage() {
     const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -43,13 +44,21 @@ export function LoginPage() {
     }
 
     return (
-        <div className="auth-page">
-            {/* Animated background gradient mesh */}
-            <div className="auth-bg" style={{
-                background: 'radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.12), transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(20,184,166,0.08), transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(168,85,247,0.08), transparent 50%), var(--bg-void)',
-            }} />
+        <div className="auth-page" style={{ position: 'relative', overflow: 'hidden' }}>
+            {/* Cinematic Ken Burns Hero Background */}
+            <KenBurnsBackground
+                images={[
+                    '/heroes/hero-3d-studio.png',
+                    '/heroes/hero-ai-generation.png',
+                    '/heroes/hero-animation.png',
+                    '/heroes/hero-blockchain.png',
+                    '/heroes/hero-effects.png'
+                ]}
+                overlayOpacity={0.7}
+                duration={10000}
+            />
 
-            <div className="auth-card">
+            <div className="auth-card" style={{ zIndex: 10, position: 'relative' }}>
                 <div className="auth-brand">
                     <div className="auth-brand-icon">◈</div>
                     <h1>TrustGen</h1>

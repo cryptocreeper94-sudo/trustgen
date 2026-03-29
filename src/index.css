@@ -2893,8 +2893,8 @@ input[type="text"].ai-input:focus {
 .command-palette-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(6, 6, 10, 0.7);
+  backdrop-filter: blur(24px);
   z-index: 10000;
   display: flex;
   align-items: flex-start;
@@ -2906,10 +2906,11 @@ input[type="text"].ai-input:focus {
 .command-palette {
   width: 100%;
   max-width: 520px;
-  background: var(--bg-panel-solid);
-  border: 1px solid var(--glass-border);
+  background: rgba(6, 6, 10, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(6, 182, 212, 0.3);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 60px rgba(6, 182, 212, 0.1);
   overflow: hidden;
   animation: commandPaletteIn 0.2s var(--ease-spring);
 }
@@ -2960,8 +2961,10 @@ input[type="text"].ai-input:focus {
 
 .command-item:hover,
 .command-item.active {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(6, 182, 212, 0.15);
+  border-left: 2px solid #06b6d4;
+  color: #06b6d4;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
 .command-item-icon {
@@ -10634,4 +10637,340 @@ input[type="text"].ai-input:focus {
   .sb-publish-tabs { flex-direction: column; }
   .sb-domain-search-bar { flex-direction: column; }
   .sb-domain-result { flex-direction: column; gap: 8px; align-items: flex-start; }
+}
+
+/* ══════════════════════════════════════════
+   Cockpit Treatment & Mobile Overrides 
+   ══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed !important;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px !important;
+    height: 100vh !important;
+    z-index: 500;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--bg-surface);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  }
+
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .hamburger-panel {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0 !important;
+  }
+
+  .viewport-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    left: 0;
+    top: 50px;
+    padding: 0 10px;
+  }
+
+  .toolbar-btn {
+    min-width: 44px;
+    min-height: 44px;
+    margin: 2px;
+  }
+
+  .sidebar {
+    width: 100% !important;
+    max-width: none !important;
+    height: 60vh !important;
+    top: auto !important;
+    bottom: 0 !important;
+    transform: translateY(100%);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+  }
+
+  .sidebar:not(.collapsed) {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .signal-modal {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .signal-chat-body {
+    flex-direction: column;
+  }
+
+  .signal-channels {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    max-height: 30vh;
+  }
+}
+/* ══════════════════════════════════════════
+   Visual Sparkle: Orbs, GSAP Cursor, Shimmers
+   ══════════════════════════════════════════ */
+
+/* Orb Animations */
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(5%, 10%) scale(1.1); }
+  100% { transform: translate(-5%, -5%) scale(0.95); }
+}
+
+@keyframes floatOrbReverse {
+  0% { transform: translate(0, 0) scale(1.05); }
+  50% { transform: translate(-8%, -15%) scale(0.95); }
+  100% { transform: translate(5%, 10%) scale(1.1); }
+}
+
+/* Base Body Override when Custom Cursor is active */
+body.custom-cursor-active {
+  cursor: none !important;
+}
+body.custom-cursor-active a, 
+body.custom-cursor-active button, 
+body.custom-cursor-active input, 
+body.custom-cursor-active textarea, 
+body.custom-cursor-active select,
+body.custom-cursor-active .interactive,
+body.custom-cursor-active [role="button"] {
+  cursor: none !important;
+}
+
+/* Primary Button Metallic Shimmer Sweep */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.4), rgba(255,255,255,0));
+  transform: skewX(-20deg);
+  animation: shimmerSweep 5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmerSweep {
+  0% { left: -150%; }
+  10% { left: 200%; } /* Fast sweep */
+  100% { left: 200%; } /* Long pause */
+}
+
+.explore-page, .dashboard-page, .terms-page, .privacy-page, .billing-page, .blog-page, .dev-portal-page, .investor-page, .affiliate-page, .workspace-page, .site-builder-page { height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+
+
+/* ══════════════════════════════════════════
+   Cinematic Feature Carousel (Replaces Emoji Grid)
+   ══════════════════════════════════════════ */
+.features-carousel-container {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%); /* Full bleed breakout across standard max-layout boundaries */
+  padding: 40px 0 80px 0;
+}
+
+.features-carousel {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 5vw; /* Offset so the first card isn't completely pinned to the wall */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide bulky scrollbar on wide cinematic carousels */
+.features-carousel::-webkit-scrollbar {
+  display: none;
+}
+.features-carousel {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.feature-card-cinematic {
+  flex: 0 0 auto;
+  width: 600px;
+  max-width: 85vw;
+  height: 480px;
+  border-radius: 20px;
+  scroll-snap-align: center;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  /* The custom-cursor-active media queries will catch this pointer natively */
+}
+
+.feature-card-cinematic:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 24px 60px rgba(6, 182, 212, 0.15);
+  border-color: var(--border-active);
+}
+
+.feature-card-cinematic-glass {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 40px 32px 32px 32px;
+  /* Ultimate void falloff to allow crisp text reading */
+  background: linear-gradient(to top, rgba(6, 6, 10, 0.98) 0%, rgba(6, 6, 10, 0.8) 55%, transparent 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateY(16px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.feature-card-cinematic:hover .feature-card-cinematic-glass {
+  transform: translateY(0);
+}
+
+.feature-card-cinematic-glass .feature-card-category {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  font-weight: 700;
+  background: rgba(6, 182, 212, 0.1);
+  padding: 6px 14px;
+  border-radius: 20px;
+  align-self: flex-start;
+  margin-bottom: 8px;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.feature-card-cinematic-glass h3 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.feature-card-cinematic-glass p {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.feature-card-cinematic-glass .feature-card-cta {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.feature-card-cinematic:hover .feature-card-cta {
+  color: var(--text-bright);
+  transform: translateX(4px);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .features-carousel {
+    scroll-padding-left: 5vw;
+  }
+  .feature-card-cinematic {
+    height: 420px;
+    width: 280px; /* Slimmer for mobile swiping */
+    scroll-snap-align: start;
+  }
+  .feature-card-cinematic-glass h3 { font-size: 1.4rem; }
+  .feature-card-cinematic-glass p { font-size: 0.95rem; }
+}
+
+/* ══════════════════════════════════════════
+   Cinematic Carousel Controls
+   ══════════════════════════════════════════ */
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.carousel-arrow {
+  background: transparent;
+  color: var(--text-secondary, #94a3b8);
+  border: 1px solid var(--border, #1e293b);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+/* The .interactive tag activates the GSAP magnetic cursor hook */
+.carousel-arrow:hover {
+  color: var(--sb-accent, #06b6d4);
+  border-color: var(--sb-accent, #06b6d4);
+  background: rgba(6, 182, 212, 0.1);
+  transform: scale(1.1);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.2);
+}
+
+.carousel-dots {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carousel-dot.active {
+  background: var(--sb-accent, #06b6d4);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+  transform: scale(1.4);
 }

@@ -57,7 +57,7 @@ export const useEngineStore = create<EngineState>((set, get) => ({
         showGrid: true,
         showStats: false,
         sidebarTab: 'scene' as const,
-        sidebarOpen: true,
+        sidebarOpen: false, // Cockpit Treatment: maximize viewport by default
         clipboard: null,
     },
 

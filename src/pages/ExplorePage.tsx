@@ -16,16 +16,15 @@ const SLIDE_DURATION = 6000
 
 const FEATURES = [
     {
-        icon: '✦',
+        image: '/features/lume_ide.jpg',
         category: 'Lume IDE',
         title: 'Built-In Lume IDE',
         description: 'Write Lume code directly in TrustGen with full Monaco editor integration, syntax highlighting, and Lume language support. Compile English Mode to 3D scenes with the Tolerance Chain.',
         path: '/editor',
         cta: 'Open IDE',
-        highlight: true,
     },
     {
-        icon: '🎨',
+        image: '/features/studio_creation.jpg',
         category: 'Creation',
         title: '3D Creation Studio',
         description: 'Build stunning 3D scenes with primitives, materials, lighting, and real-time preview. Professional-grade tools in your browser.',
@@ -33,7 +32,7 @@ const FEATURES = [
         cta: 'Open Studio',
     },
     {
-        icon: '🤖',
+        image: '/features/ai_generation.jpg',
         category: 'AI Powered',
         title: 'AI Model Generation',
         description: 'Generate characters, creatures, trees, flowers, rocks, and more with our in-house procedural engine. 44 presets, infinite customization, zero external dependencies.',
@@ -41,7 +40,7 @@ const FEATURES = [
         cta: 'Try AI Gen',
     },
     {
-        icon: '🎬',
+        image: '/features/animation_curve.jpg',
         category: 'Animation',
         title: 'Animation Timeline',
         description: 'Keyframe animation system with easing curves, playback controls, and real-time preview. Animate position, rotation, scale, and materials.',
@@ -49,7 +48,7 @@ const FEATURES = [
         cta: 'Animate',
     },
     {
-        icon: '🎙️',
+        image: '/features/voice_profiles.jpg',
         category: 'Voice',
         title: 'Adaptive Voice Profiles',
         description: 'Speak your 3D commands naturally. TrustGen learns your dialect, accent, and filler words — the IDE adapts to you, not the other way around.',
@@ -57,7 +56,7 @@ const FEATURES = [
         cta: 'Try Voice',
     },
     {
-        icon: '✨',
+        image: '/features/post_processing.jpg',
         category: 'Effects',
         title: 'Post-Processing & FX',
         description: 'Bloom, SSAO, depth of field, chromatic aberration, film grain, and color grading. Cinematic quality rendering in real-time.',
@@ -65,7 +64,7 @@ const FEATURES = [
         cta: 'Add Effects',
     },
     {
-        icon: '📦',
+        image: '/features/model_export.jpg',
         category: 'Export',
         title: 'Model Import & Export',
         description: 'Import GLTF/GLB models, export your scenes in multiple formats. Full pipeline from creation to production-ready assets.',
@@ -73,7 +72,7 @@ const FEATURES = [
         cta: 'Import/Export',
     },
     {
-        icon: '🔐',
+        image: '/features/trust_layer.jpg',
         category: 'Trust Layer',
         title: 'Ecosystem Integration',
         description: 'Part of the Trust Layer ecosystem. SSO authentication, verified provenance, and seamless connection to 36 ecosystem apps.',
@@ -236,6 +235,26 @@ export function ExplorePage() {
     const [transitioning, setTransitioning] = useState(false)
     const [heroVisible, setHeroVisible] = useState(false)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const carouselRef = useRef<HTMLDivElement>(null)
+    const [featuresIndex, setFeaturesIndex] = useState(0)
+
+    const scrollFeatureCarousel = (direction: 'left' | 'right') => {
+        if (carouselRef.current) {
+            // Precise card width + 24px gap. Mobile is 280+24. Desktop is 600+24.
+            const cardWidth = window.innerWidth > 768 ? 624 : 304; 
+            carouselRef.current.scrollBy({ left: direction === 'left' ? -cardWidth : cardWidth, behavior: 'smooth' })
+        }
+    }
+
+    const handleCarouselScroll = useCallback(() => {
+        if (!carouselRef.current) return
+        const scrollLeft = carouselRef.current.scrollLeft
+        const cardWidth = window.innerWidth > 768 ? 624 : 304
+        const index = Math.round(scrollLeft / cardWidth)
+        if (index !== featuresIndex) {
+            setFeaturesIndex(index)
+        }
+    }, [featuresIndex])
 
     const goToSlide = useCallback((idx: number) => {
         if (idx === currentSlide || transitioning) return
@@ -355,27 +374,41 @@ export function ExplorePage() {
                     A complete 3D creation platform with the world's first intent-resolving IDE
                 </p>
 
-                <div className="feature-grid">
-                    {FEATURES.map(feature => (
-                        <div
-                            key={feature.title}
-                            className={`feature-card ${feature.highlight ? 'feature-card-highlight' : ''}`}
-                            onClick={() => navigate(feature.path)}
-                        >
-                            <div className="feature-card-glow" />
-                            <div className="feature-card-image-placeholder">
-                                {feature.icon}
+                <div className="features-carousel-container">
+                    <div 
+                        className="features-carousel" 
+                        ref={carouselRef} 
+                        onScroll={handleCarouselScroll}
+                    >
+                        {FEATURES.map(feature => (
+                            <div
+                                key={feature.title}
+                                className="feature-card-cinematic"
+                                style={{ backgroundImage: `url(${feature.image})` }}
+                                onClick={() => navigate(feature.path)}
+                            >
+                                {/* Void Glass overlay to ground the text perfectly into the image */}
+                                <div className="feature-card-cinematic-glass">
+                                    <div className="feature-card-category">{feature.category}</div>
+                                    <h3>{feature.title}</h3>
+                                    <p>{feature.description}</p>
+                                    <button className="feature-card-cta">
+                                        {feature.cta} →
+                                    </button>
+                                </div>
                             </div>
-                            <div className="feature-card-body">
-                                <div className="feature-card-category">{feature.category}</div>
-                                <h3>{feature.title}</h3>
-                                <p>{feature.description}</p>
-                                <button className="feature-card-cta">
-                                    {feature.cta} →
-                                </button>
-                            </div>
+                        ))}
+                    </div>
+                    {/* Cinematic Controls */}
+                    <div className="carousel-controls">
+                        <button className="carousel-arrow interactive" onClick={() => scrollFeatureCarousel('left')}>←</button>
+                        <div className="carousel-dots">
+                            {FEATURES.map((_, idx) => (
+                                <div key={idx} className={`carousel-dot ${idx === featuresIndex ? 'active' : ''}`} />
+                            ))}
                         </div>
-                    ))}
+                        <button className="carousel-arrow interactive" onClick={() => scrollFeatureCarousel('right')}>→</button>
+                    </div>
                 </div>
             </section>
 

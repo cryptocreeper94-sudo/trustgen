@@ -2602,6 +2602,26 @@ app.get('/api/studio-sites/reserved', (_req, res) => {
 })
 
 // ════════════════════════════════
+//  PRODUCTION FRONTEND SERVER
+// ════════════════════════════════
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Serve the compiled Vite application from the dist folder
+app.use(express.static(path.join(__dirname, '../dist')))
+
+// Catch-all for React Router to handle frontend routing
+app.get('*', (req, res) => {
+    // Prevent API 404s from returning the HTML file
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API route not found' })
+    }
+    res.sendFile(path.join(__dirname, '../dist/index.html'))
+})
+
+// ════════════════════════════════
 //  BOOT
 // ════════════════════════════════
 

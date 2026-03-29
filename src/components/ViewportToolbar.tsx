@@ -23,6 +23,8 @@ export function ViewportToolbar() {
     const redo = useEngineStore(s => s.redo)
     const copyNodes = useEngineStore(s => s.copyNodes)
     const pasteNodes = useEngineStore(s => s.pasteNodes)
+    const sidebarOpen = useEngineStore(s => s.editor.sidebarOpen)
+    const toggleSidebar = useEngineStore(s => s.toggleSidebar)
 
     // Keyboard shortcuts
     React.useEffect(() => {
@@ -90,6 +92,13 @@ export function ViewportToolbar() {
                     title={`Space: ${gizmoSpace}`}
                 >
                     {gizmoSpace === 'world' ? '🌐' : '📍'}
+                </button>
+                <button
+                    className={`toolbar-btn ${sidebarOpen ? 'active' : ''}`}
+                    onClick={toggleSidebar}
+                    title="Toggle Inspector (Cockpit Mode)"
+                >
+                    🎛️
                 </button>
             </div>
 

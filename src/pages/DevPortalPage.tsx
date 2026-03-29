@@ -33,6 +33,8 @@ const API_ENDPOINTS = [
     { method: 'GET', path: '/api/admin/health', desc: 'Admin system health (PIN required)' },
     { method: 'GET', path: '/api/admin/stats', desc: 'Admin DB stats (PIN required)' },
     { method: 'GET', path: '/api/admin/env-status', desc: 'Admin env vars status (PIN required)' },
+    { method: 'POST', path: '/api/meshy/generate', desc: 'Generate 3D model (Meshy AI)' },
+    { method: 'POST', path: '/api/rigging/auto', desc: 'Auto-rig 3D character (Render/Mixamo)' },
 ]
 
 const ENV_VARS = [
@@ -429,6 +431,16 @@ export function DevPortalPage() {
                                         <td style={{ fontFamily: 'var(--font-sans)' }}>Trust Stamps</td>
                                         <td><span style={{ color: 'var(--success)' }}>● Active</span></td>
                                         <td>/api/trustlayer/stamps</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ fontFamily: 'var(--font-sans)' }}>Meshy 3D Generation</td>
+                                        <td><span style={{ color: 'var(--success)' }}>● Active</span></td>
+                                        <td>/api/meshy/generate</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ fontFamily: 'var(--font-sans)' }}>Auto-Rigging Pipeline</td>
+                                        <td><span style={{ color: 'var(--success)' }}>● Active</span></td>
+                                        <td>/api/rigging/auto</td>
                                     </tr>
                                     <tr>
                                         <td style={{ fontFamily: 'var(--font-sans)' }}>Webhooks</td>
