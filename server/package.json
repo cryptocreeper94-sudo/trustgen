@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "npx tsx --watch index.ts",
         "start": "node --import tsx/esm index.ts",
-        "build": "echo 'Using tsx runtime - no build needed'"
+        "build": "npm install --prefix .. && npm run build --prefix .."
     },
     "dependencies": {
         "express": "^4.21.0",
