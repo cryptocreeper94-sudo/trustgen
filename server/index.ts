@@ -2606,20 +2606,43 @@ app.get('/api/studio-sites/reserved', (_req, res) => {
 // ════════════════════════════════
 import path from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Serve the compiled Vite application from the dist folder
-app.use(express.static(path.join(__dirname, '../dist')))
+// Render sometimes manipulates Node's CWD or executes hooks differently.
+// Let's aggressively scan for the compiled Vite directory.
+const distPaths = [
+    path.join(__dirname, '../dist'),       // __dirname is server/, dist is parent
+    path.join(Math.abs(process.cwd().indexOf('server')) !== -1 ? path.join(process.cwd(), '../dist') : path.join(process.cwd(), 'dist')),
+    path.join(__dirname, 'dist'),
+    path.join(process.cwd(), 'dist')
+]
 
-// Catch-all for React Router to handle frontend routing
-app.get('*', (req, res) => {
-    // Prevent API 404s from returning the HTML file
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API route not found' })
-    }
-    res.sendFile(path.join(__dirname, '../dist/index.html'))
-})
+const validDist = distPaths.find(p => fs.existsSync(p))
+
+if (validDist) {
+    console.log(`✅ Express mounting static frontend at: ${validDist}`)
+    app.use(express.static(validDist))
+    app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ error: 'API route not found' })
+        }
+        res.sendFile(path.join(validDist, 'index.html'))
+    })
+} else {
+    console.error(`❌ Vite 'dist' folder totally absent. Frontend build skipped?`)
+    app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API route missing' })
+        res.status(500).send(`
+            <h2>TrustGen Frontend Missing</h2>
+            <p>The React UI failed to compile during the Render deployment.</p>
+            <p><strong>CWD:</strong> ${process.cwd()}</p>
+            <p><strong>__dirname:</strong> ${__dirname}</p>
+            <p><strong>Checked Paths:</strong><br>${distPaths.join('<br>')}</p>
+        `)
+    })
+}
 
 // ════════════════════════════════
 //  BOOT
