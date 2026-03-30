@@ -15,6 +15,7 @@ export interface User {
     phone?: string
     subscriptionTier: SubscriptionTier
     stripeCustomerId?: string
+    mustChangePassword?: boolean
 }
 
 /* ── Tier gating map ── */

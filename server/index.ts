@@ -330,6 +330,7 @@ function userResponse(user: any) {
         subscriptionTier: user.subscription_tier,
         stripeCustomerId: user.stripe_customer_id,
         trustLayerId: user.trust_layer_id,
+        mustChangePassword: user.must_change_password ?? false,
     }
 }
 
@@ -502,7 +503,7 @@ app.post('/api/auth/change-password', authMiddleware, async (req: any, res) => {
         if (!valid) return res.status(401).json({ error: 'Current password is incorrect' })
 
         const hash = await bcrypt.hash(newPassword, 12)
-        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.userId])
+        await pool.query('UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2', [hash, req.userId])
 
         // Sync password change to ecosystem (non-blocking)
         tl.syncPasswordChange(user.email, newPassword).catch(err =>
@@ -2645,6 +2646,43 @@ if (validDist) {
 }
 
 // ════════════════════════════════
+//  BETA USER SEEDING
+// ════════════════════════════════
+async function seedBetaUsers() {
+    const betaUsers = [
+        { email: 'david_2071@yahoo.com', name: 'David Painton', tier: 'enterprise' },
+        { email: 'coopertue@gmail.com', name: 'Cooper Tue', tier: 'enterprise' },
+    ]
+
+    // Add must_change_password column if it doesn't exist
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`)
+
+    for (const beta of betaUsers) {
+        const existing = await pool.query('SELECT id FROM users WHERE email = $1', [beta.email])
+        if (existing.rows.length > 0) {
+            // Ensure they have enterprise tier even if already registered
+            await pool.query('UPDATE users SET subscription_tier = $1 WHERE email = $2', [beta.tier, beta.email])
+            console.log(`  ✓ Beta user ${beta.name} (${beta.email}) already exists — tier set to ${beta.tier}`)
+            continue
+        }
+
+        const slug = beta.email.split('@')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase()
+        const tenant = await pool.query(
+            'INSERT INTO tenants (name, slug) VALUES ($1, $2) RETURNING id',
+            [beta.name + "'s Workspace", slug + '-' + Date.now().toString(36)]
+        )
+        const tenantId = tenant.rows[0].id
+
+        const hash = await bcrypt.hash('Temp12345!', 12)
+        await pool.query(
+            'INSERT INTO users (email, password_hash, name, tenant_id, subscription_tier, must_change_password) VALUES ($1, $2, $3, $4, $5, true) RETURNING id',
+            [beta.email, hash, beta.name, tenantId, beta.tier]
+        )
+        console.log(`  ✓ Beta user seeded: ${beta.name} (${beta.email}) — tier: ${beta.tier}, must change password on first login`)
+    }
+}
+
+// ════════════════════════════════
 //  BOOT
 // ════════════════════════════════
 
@@ -2652,6 +2690,7 @@ async function boot() {
     try {
         await initDB()
         await initBlogTable()
+        await seedBetaUsers()
     } catch (err) {
         console.error('❌ Database initialization failed:', err)
         process.exit(1)
