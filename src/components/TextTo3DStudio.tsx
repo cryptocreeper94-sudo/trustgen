@@ -13,6 +13,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { parseDescriptionLocal, buildSceneGroup, type SceneGraph, type GenerationMode } from '../engine/TextTo3DGenerator'
 import { VariantPreview } from './VariantPreview'
+import { NeuralForge } from './NeuralForge'
+import './NeuralForge.css'
 
 // ══════════════════════════════════════════
 //  TYPES & CONSTANTS
@@ -200,6 +202,8 @@ export function TextTo3DStudio({ onGenerate }: Props) {
     const [showAdvanced, setShowAdvanced] = useState(false)
     const [history] = useState<string[]>(() => loadHistory())
     const [showHistory, setShowHistory] = useState(false)
+    const [forgeActive, setForgeActive] = useState(false)
+    const [forgeProgress, setForgeProgress] = useState(0)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     // Current stage info
@@ -216,20 +220,26 @@ export function TextTo3DStudio({ onGenerate }: Props) {
     const generate = useCallback(async () => {
         if (!prompt.trim()) return
         setError(null); setVariants([]); setSel(null)
+        setForgeActive(true); setForgeProgress(0)
         saveHistory(prompt.trim())
 
         try {
-            for (const s of STAGES.slice(0, -1)) {
+            const stageDelays = [250, 300, 350, 300, 250]
+            for (let i = 0; i < STAGES.length - 1; i++) {
+                const s = STAGES[i]
                 setStage(s.id)
-                await new Promise(r => setTimeout(r, 250 + Math.random() * 200))
+                setForgeProgress(s.pct)
+                await new Promise(r => setTimeout(r, stageDelays[i] + Math.random() * 200))
             }
             const base = parseDescriptionLocal(prompt)
             const vars = makeVariants(base, style)
             setVariants(vars)
             setStage('done')
+            setForgeProgress(100)
         } catch (e: any) {
             setError(e.message)
             setStage('idle')
+            setForgeActive(false)
         }
     }, [prompt, style, mode])
 
@@ -400,6 +410,16 @@ export function TextTo3DStudio({ onGenerate }: Props) {
                 <div className="t3d-error" id="t3d-error-display">
                     ⚠️ {error}
                 </div>
+            )}
+
+            {/* ── Neural Forge Loading Animation ── */}
+            {forgeActive && stage !== 'done' && (
+                <NeuralForge
+                    active={true}
+                    progress={forgeProgress}
+                    onComplete={() => setForgeActive(false)}
+                    compact
+                />
             )}
 
             {/* ── Variant Grid (with live 3D previews) ── */}

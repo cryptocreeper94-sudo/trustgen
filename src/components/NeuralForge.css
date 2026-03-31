@@ -1,0 +1,251 @@
+/* ══════════════════════════════════════════
+   Neural Forge — AI Generation Loading UI
+   ══════════════════════════════════════════ */
+
+.nf-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px 24px;
+    background: rgba(6, 6, 10, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(6, 182, 212, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 280px;
+}
+
+.nf-container.nf-compact {
+    min-height: 180px;
+    padding: 20px 16px;
+    gap: 12px;
+}
+
+.nf-container.nf-done {
+    border-color: rgba(52, 211, 153, 0.3);
+    box-shadow: 0 0 40px rgba(52, 211, 153, 0.1);
+}
+
+/* ── Particles ── */
+.nf-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.nf-particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+/* ── Image Carousel ── */
+.nf-carousel {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.nf-compact .nf-carousel {
+    width: 100px;
+    height: 100px;
+}
+
+.nf-carousel-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.3s ease, filter 0.3s ease;
+    pointer-events: none;
+}
+
+.nf-carousel-img--active {
+    opacity: 1;
+}
+
+/* Scanline overlay */
+.nf-scanlines {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(6, 182, 212, 0.03) 2px,
+        rgba(6, 182, 212, 0.03) 4px
+    );
+    pointer-events: none;
+    animation: nf-scanline-scroll 3s linear infinite;
+}
+
+@keyframes nf-scanline-scroll {
+    from { background-position: 0 0; }
+    to { background-position: 0 40px; }
+}
+
+/* ── Progress Ring ── */
+.nf-ring {
+    position: absolute;
+    inset: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    transform: rotate(-90deg);
+    pointer-events: none;
+}
+
+/* ── Center Percentage ── */
+.nf-percent {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    pointer-events: none;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+.nf-compact .nf-percent {
+    font-size: 16px;
+}
+
+/* ── Status Message ── */
+.nf-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1;
+}
+
+.nf-status-icon {
+    font-size: 16px;
+    animation: nf-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes nf-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+.nf-status-text {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.3px;
+    animation: nf-glow-text 2s ease-in-out infinite;
+}
+
+@keyframes nf-glow-text {
+    0%, 100% { color: rgba(255, 255, 255, 0.7); }
+    50% { color: #22d3ee; }
+}
+
+/* ── Bottom Progress Bar ── */
+.nf-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.nf-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
+
+/* ── Brand Watermark ── */
+.nf-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 1;
+}
+
+.nf-brand-logo {
+    font-size: 10px;
+    background: linear-gradient(135deg, #06b6d4, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nf-brand-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+/* ── Skip Button ── */
+.nf-skip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    z-index: 2;
+}
+
+.nf-skip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(6, 182, 212, 0.3);
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .nf-container {
+        padding: 20px 16px;
+        min-height: 220px;
+    }
+
+    .nf-carousel {
+        width: 120px;
+        height: 120px;
+    }
+
+    .nf-percent {
+        font-size: 18px;
+    }
+
+    .nf-status-text {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nf-carousel {
+        width: 90px;
+        height: 90px;
+    }
+
+    .nf-percent {
+        font-size: 14px;
+    }
+}
