@@ -61,6 +61,7 @@ async function initDB() {
 
         -- Add trust_layer_id if missing (migration)
         ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_layer_id TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false;
 
         CREATE TABLE IF NOT EXISTS projects (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2650,20 +2651,20 @@ if (validDist) {
 // ════════════════════════════════
 async function seedBetaUsers() {
     const betaUsers = [
-        { email: 'david_2071@yahoo.com', name: 'David Painton', tier: 'enterprise' },
-        { email: 'coopertue@gmail.com', name: 'Cooper Tue', tier: 'enterprise' },
+        { email: 'david_2071@yahoo.com', name: 'David Painton', tier: 'enterprise', tlid: 'TL-DWS-0002' },
+        { email: 'coopertue@gmail.com', name: 'Cooper Tue', tier: 'enterprise', tlid: 'TL-DWS-0003' },
     ]
 
-    // Add must_change_password column if it doesn't exist
-    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`)
-
     for (const beta of betaUsers) {
-        const existing = await pool.query('SELECT id FROM users WHERE email = $1', [beta.email])
+        const existing = await pool.query('SELECT id, trust_layer_id FROM users WHERE email = $1', [beta.email])
         if (existing.rows.length > 0) {
-            // Ensure they have enterprise tier and Temp12345! password even if already registered
+            // Ensure they have enterprise tier, Temp12345! password, and TL ID even if already registered
             const hash = await bcrypt.hash('Temp12345!', 12)
-            await pool.query('UPDATE users SET subscription_tier = $1, password_hash = $2, must_change_password = true WHERE email = $3', [beta.tier, hash, beta.email])
-            console.log(`  ✓ Beta user ${beta.name} (${beta.email}) already exists — tier set to ${beta.tier}, password reset to Temp12345!`)
+            await pool.query(
+                'UPDATE users SET subscription_tier = $1, password_hash = $2, must_change_password = true, trust_layer_id = COALESCE(trust_layer_id, $3) WHERE email = $4',
+                [beta.tier, hash, beta.tlid, beta.email]
+            )
+            console.log(`  ✓ Beta user ${beta.name} (${beta.email}) already exists — tier: ${beta.tier}, TLID: ${existing.rows[0].trust_layer_id || beta.tlid}, password reset to Temp12345!`)
             continue
         }
 
@@ -2676,10 +2677,10 @@ async function seedBetaUsers() {
 
         const hash = await bcrypt.hash('Temp12345!', 12)
         await pool.query(
-            'INSERT INTO users (email, password_hash, name, tenant_id, subscription_tier, must_change_password) VALUES ($1, $2, $3, $4, $5, true) RETURNING id',
-            [beta.email, hash, beta.name, tenantId, beta.tier]
+            'INSERT INTO users (email, password_hash, name, tenant_id, subscription_tier, must_change_password, trust_layer_id, email_verified) VALUES ($1, $2, $3, $4, $5, true, $6, true) RETURNING id',
+            [beta.email, hash, beta.name, tenantId, beta.tier, beta.tlid]
         )
-        console.log(`  ✓ Beta user seeded: ${beta.name} (${beta.email}) — tier: ${beta.tier}, must change password on first login`)
+        console.log(`  ✓ Beta user seeded: ${beta.name} (${beta.email}) — tier: ${beta.tier}, TLID: ${beta.tlid}`)
     }
 }
 

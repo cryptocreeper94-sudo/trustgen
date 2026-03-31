@@ -51,6 +51,63 @@ export function DashboardPage() {
                 </div>
             </div>
 
+            {/* Personalized Welcome Banner */}
+            <div style={{
+                margin: '0 24px 16px',
+                padding: '20px 24px',
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, rgba(184,107,255,0.08), rgba(6,182,212,0.08), rgba(217,70,239,0.08))',
+                border: '1px solid rgba(184,107,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+            }}>
+                <div>
+                    <h2 style={{
+                        fontSize: 22, fontWeight: 800, margin: 0,
+                        background: 'linear-gradient(135deg, #fff, #06b6d4)',
+                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    }}>
+                        Welcome back, {user?.name?.split(' ')[0] || 'Creator'}!
+                    </h2>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {user?.trustLayerId && (
+                            <span style={{
+                                fontSize: 11, fontFamily: 'var(--font-mono)',
+                                padding: '3px 10px', borderRadius: 8,
+                                background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)',
+                                color: '#06b6d4',
+                            }}>
+                                🛡️ {user.trustLayerId}
+                            </span>
+                        )}
+                        <span style={{
+                            fontSize: 11, fontFamily: 'var(--font-mono)',
+                            padding: '3px 10px', borderRadius: 8,
+                            background: user?.subscriptionTier === 'enterprise'
+                                ? 'rgba(184,107,255,0.12)' : 'rgba(16,185,129,0.12)',
+                            border: user?.subscriptionTier === 'enterprise'
+                                ? '1px solid rgba(184,107,255,0.25)' : '1px solid rgba(16,185,129,0.25)',
+                            color: user?.subscriptionTier === 'enterprise' ? '#b86bff' : '#10b981',
+                        }}>
+                            💎 {user?.subscriptionTier?.toUpperCase() || 'FREE'} Tier
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {user?.email}
+                        </span>
+                    </div>
+                </div>
+                <button className="btn btn-sm" onClick={() => navigate('/editor/new')} style={{
+                    background: 'linear-gradient(135deg, #b86bff, #06b6d4)',
+                    color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 10,
+                    fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                }}>
+                    + New Scene
+                </button>
+            </div>
+
             <div className="dashboard-body">
                 <div className="dashboard-section">
                     <h2>Your Projects</h2>
