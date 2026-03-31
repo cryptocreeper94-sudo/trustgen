@@ -29,6 +29,7 @@ import { WorkspacePage } from './pages/WorkspacePage'
 import { AffiliatePage } from './pages/AffiliatePage'
 import { SiteBuilderPage } from './pages/SiteBuilderPage'
 import { BetaPage } from './pages/BetaPage'
+import { BetaMilestonePanel } from './components/BetaMilestonePanel'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -191,6 +192,7 @@ export default function App() {
       <ToastContainer />
       <SignalChatWidget />
       <HamburgerMenu />
+      <BetaMilestonePanel />
       <PWAInstallBanner />
     </BrowserRouter>
   )
