@@ -248,6 +248,33 @@ async function initDB() {
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        -- ══════════════════════════════════════
+        --  BETA PROGRAM
+        -- ══════════════════════════════════════
+
+        CREATE TABLE IF NOT EXISTS beta_applications (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            what_building TEXT NOT NULL,
+            github_url TEXT,
+            status TEXT DEFAULT 'approved',
+            pin TEXT NOT NULL,
+            pin_used BOOLEAN DEFAULT false,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_status TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_expires_at TIMESTAMPTZ;
+
+        CREATE TABLE IF NOT EXISTS beta_milestones (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id),
+            milestone_key TEXT NOT NULL,
+            completed_at TIMESTAMPTZ DEFAULT NOW(),
+            UNIQUE(user_id, milestone_key)
+        );
     `)
     console.log('✅ Database tables initialized')
 }
@@ -332,6 +359,8 @@ function userResponse(user: any) {
         stripeCustomerId: user.stripe_customer_id,
         trustLayerId: user.trust_layer_id,
         mustChangePassword: user.must_change_password ?? false,
+        betaStatus: user.beta_status || null,
+        betaExpiresAt: user.beta_expires_at || null,
     }
 }
 
@@ -340,7 +369,7 @@ function userResponse(user: any) {
 // ════════════════════════════════
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, name } = req.body
+        const { email, password, name, betaPin } = req.body
         if (!email || !password || !name) return res.status(400).json({ error: 'Missing fields' })
 
         // Enforce ecosystem password policy
@@ -350,6 +379,21 @@ app.post('/api/auth/register', async (req, res) => {
 
         const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email])
         if (existing.rows.length > 0) return res.status(409).json({ error: 'Email already registered' })
+
+        // Validate beta PIN if provided
+        let isBetaTester = false
+        if (betaPin) {
+            const betaResult = await pool.query(
+                'SELECT * FROM beta_applications WHERE pin = $1 AND pin_used = false AND status = $2',
+                [betaPin.trim(), 'approved']
+            )
+            if (betaResult.rows.length === 0) {
+                return res.status(400).json({ error: 'Invalid or already used beta PIN' })
+            }
+            isBetaTester = true
+            // Mark PIN as used
+            await pool.query('UPDATE beta_applications SET pin_used = true WHERE pin = $1', [betaPin.trim()])
+        }
 
         // Create tenant for user
         const slug = email.split('@')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase()
@@ -363,10 +407,23 @@ app.post('/api/auth/register', async (req, res) => {
         const trustLayerId = tl.generateTrustLayerId()
 
         const hash = await bcrypt.hash(password, 12)
+        const betaExpiry = isBetaTester ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null
         const user = await pool.query(
-            'INSERT INTO users (email, password_hash, name, tenant_id, trust_layer_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [email, hash, name, tenantId, trustLayerId]
+            `INSERT INTO users (email, password_hash, name, tenant_id, trust_layer_id, beta_status, beta_expires_at, subscription_tier)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [email, hash, name, tenantId, trustLayerId,
+             isBetaTester ? 'beta_tester' : null,
+             betaExpiry,
+             isBetaTester ? 'pro' : 'free']
         )
+
+        // Auto-complete first milestone for beta testers
+        if (isBetaTester) {
+            await pool.query(
+                'INSERT INTO beta_milestones (user_id, milestone_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                [user.rows[0].id, 'account_created']
+            )
+        }
 
         const token = makeToken(user.rows[0].id, tenantId)
 
@@ -651,6 +708,13 @@ app.post('/api/projects', authMiddleware, async (req: any, res) => {
             [req.tenantId, req.userId, name, description || null]
         )
         const p = result.rows[0]
+
+        // Auto-complete beta milestone
+        await pool.query(
+            'INSERT INTO beta_milestones (user_id, milestone_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [req.userId, 'create_project']
+        ).catch(() => {})
+
         res.json({
             id: p.id, name: p.name, description: p.description,
             thumbnailUrl: p.thumbnail_url, sceneData: p.scene_data,
@@ -710,6 +774,181 @@ app.delete('/api/projects/:id', authMiddleware, async (req: any, res) => {
         res.status(204).end()
     } catch (err: any) {
         res.status(500).json({ error: 'Failed to delete project' })
+    }
+})
+
+// ════════════════════════════════
+//  BETA PROGRAM
+// ════════════════════════════════
+
+const BETA_MILESTONES = [
+    { key: 'account_created', title: 'Create Your Account', description: 'Sign up with your beta PIN and set your password.', order: 1 },
+    { key: 'create_project', title: 'Create a Project', description: 'Create your first TrustGen 3D project in the workspace.', order: 2 },
+    { key: 'add_asset', title: 'Add a 3D Asset', description: 'Add at least one 3D model or shape to your scene.', order: 3 },
+    { key: 'use_ai', title: 'Use AI Generation', description: 'Generate a 3D asset, scene, or content using any AI feature.', order: 4 },
+    { key: 'render_export', title: 'Render or Export', description: 'Render a scene or export a video/image from TrustGen.', order: 5 },
+    { key: 'submit_feedback', title: 'Submit Feedback', description: 'Send a screenshot + feedback message via Signal Chat. Mention your beta PIN.', order: 6 },
+]
+
+const MAX_BETA_SLOTS = 20
+
+// Public: Submit beta application → generates PIN
+app.post('/api/beta/apply', async (req, res) => {
+    try {
+        const { name, email, whatBuilding, githubUrl } = req.body
+        if (!name || !email || !whatBuilding) {
+            return res.status(400).json({ error: 'Please fill in all required fields' })
+        }
+
+        // Check if already applied
+        const existing = await pool.query('SELECT * FROM beta_applications WHERE email = $1', [email])
+        if (existing.rows.length > 0) {
+            const app = existing.rows[0]
+            if (app.pin_used) {
+                return res.status(409).json({ error: 'You have already used your beta PIN to create an account.' })
+            }
+            return res.json({
+                pin: app.pin,
+                message: 'You already have a beta PIN! Use it when creating your account.',
+                alreadyApplied: true,
+            })
+        }
+
+        // Check capacity
+        const count = await pool.query('SELECT COUNT(*) FROM beta_applications')
+        const totalApplied = parseInt(count.rows[0].count)
+        if (totalApplied >= MAX_BETA_SLOTS) {
+            return res.status(410).json({
+                error: 'Beta program is full',
+                message: `All ${MAX_BETA_SLOTS} beta slots have been claimed. Join the waitlist by signing up for a free account.`,
+                spotsLeft: 0,
+            })
+        }
+
+        // Generate 6-digit PIN
+        const pin = Math.floor(100000 + Math.random() * 900000).toString()
+
+        await pool.query(
+            'INSERT INTO beta_applications (name, email, what_building, github_url, pin) VALUES ($1, $2, $3, $4, $5)',
+            [name, email, whatBuilding, githubUrl || null, pin]
+        )
+
+        const spotsLeft = MAX_BETA_SLOTS - totalApplied - 1
+
+        res.json({
+            pin,
+            spotsLeft,
+            message: `Welcome to the beta program! Use PIN ${pin} when creating your TrustGen account. ${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} remaining.`,
+        })
+    } catch (err: any) {
+        console.error('Beta apply error:', err)
+        res.status(500).json({ error: 'Application failed' })
+    }
+})
+
+// Public: Check how many beta spots are left
+app.get('/api/beta/spots', async (_req, res) => {
+    try {
+        const count = await pool.query('SELECT COUNT(*) FROM beta_applications')
+        const used = parseInt(count.rows[0].count)
+        res.json({ total: MAX_BETA_SLOTS, used, remaining: MAX_BETA_SLOTS - used })
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to check spots' })
+    }
+})
+
+// Authenticated: Get milestone progress
+app.get('/api/beta/milestones', authMiddleware, async (req: any, res) => {
+    try {
+        const userResult = await pool.query('SELECT beta_status, beta_expires_at FROM users WHERE id = $1', [req.userId])
+        const user = userResult.rows[0]
+        if (!user?.beta_status) {
+            return res.json({ isBetaTester: false, milestones: [] })
+        }
+
+        const completed = await pool.query(
+            'SELECT milestone_key, completed_at FROM beta_milestones WHERE user_id = $1',
+            [req.userId]
+        )
+        const completedMap: Record<string, string> = {}
+        completed.rows.forEach((r: any) => { completedMap[r.milestone_key] = r.completed_at })
+
+        const milestones = BETA_MILESTONES.map(m => ({
+            ...m,
+            completed: !!completedMap[m.key],
+            completedAt: completedMap[m.key] || null,
+        }))
+
+        const allComplete = milestones.every(m => m.completed)
+
+        res.json({
+            isBetaTester: true,
+            betaStatus: user.beta_status,
+            betaExpiresAt: user.beta_expires_at,
+            daysLeft: user.beta_expires_at ? Math.max(0, Math.ceil((new Date(user.beta_expires_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : null,
+            milestones,
+            allComplete,
+            completedCount: milestones.filter(m => m.completed).length,
+            totalCount: milestones.length,
+        })
+    } catch (err) {
+        console.error('Milestones error:', err)
+        res.status(500).json({ error: 'Failed to get milestones' })
+    }
+})
+
+// Authenticated: Complete a milestone
+app.post('/api/beta/complete-milestone', authMiddleware, async (req: any, res) => {
+    try {
+        const { milestoneKey } = req.body
+        if (!milestoneKey) return res.status(400).json({ error: 'Missing milestoneKey' })
+
+        // Verify user is a beta tester
+        const userResult = await pool.query('SELECT beta_status FROM users WHERE id = $1', [req.userId])
+        if (!userResult.rows[0]?.beta_status) {
+            return res.status(403).json({ error: 'Not a beta tester' })
+        }
+
+        // Validate milestone key
+        if (!BETA_MILESTONES.find(m => m.key === milestoneKey)) {
+            return res.status(400).json({ error: 'Invalid milestone key' })
+        }
+
+        // Insert milestone (ignore if already completed)
+        await pool.query(
+            'INSERT INTO beta_milestones (user_id, milestone_key) VALUES ($1, $2) ON CONFLICT (user_id, milestone_key) DO NOTHING',
+            [req.userId, milestoneKey]
+        )
+
+        // Check if all milestones are now complete
+        const completed = await pool.query(
+            'SELECT COUNT(*) FROM beta_milestones WHERE user_id = $1',
+            [req.userId]
+        )
+        const completedCount = parseInt(completed.rows[0].count)
+
+        if (completedCount >= BETA_MILESTONES.length) {
+            // 🎉 Upgrade to Founder! Permanent pro access, no expiry
+            await pool.query(
+                `UPDATE users SET beta_status = 'founder', beta_expires_at = NULL, subscription_tier = 'pro' WHERE id = $1`,
+                [req.userId]
+            )
+            return res.json({
+                completed: true,
+                upgraded: true,
+                message: '🎉 Congratulations! You have earned permanent Founder status. Full access is now yours forever. Your name will be listed in our documentation as a founding beta tester.',
+            })
+        }
+
+        res.json({
+            completed: true,
+            upgraded: false,
+            completedCount,
+            remaining: BETA_MILESTONES.length - completedCount,
+        })
+    } catch (err) {
+        console.error('Complete milestone error:', err)
+        res.status(500).json({ error: 'Failed to complete milestone' })
     }
 })
 

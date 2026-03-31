@@ -17,6 +17,8 @@ export interface User {
     stripeCustomerId?: string
     trustLayerId?: string
     mustChangePassword?: boolean
+    betaStatus?: string | null
+    betaExpiresAt?: string | null
 }
 
 /* ── Tier gating map ── */
@@ -43,7 +45,7 @@ interface AuthState {
 
     /* ── Core auth ── */
     login: (email: string, password: string) => Promise<void>
-    register: (email: string, password: string, name: string) => Promise<void>
+    register: (email: string, password: string, name: string, betaPin?: string) => Promise<void>
     logout: () => void
     checkAuth: () => Promise<void>
     clearError: () => void
@@ -85,10 +87,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    register: async (email, password, name) => {
+    register: async (email, password, name, betaPin) => {
         set({ loading: true, error: null })
         try {
-            const data = await api.post<{ token: string; user: User }>('/api/auth/register', { email, password, name })
+            const body: any = { email, password, name }
+            if (betaPin) body.betaPin = betaPin
+            const data = await api.post<{ token: string; user: User }>('/api/auth/register', body)
             localStorage.setItem('trustgen-auth-token', data.token)
             localStorage.setItem('trustgen-tenant-id', data.user.tenantId)
             set({ user: data.user, token: data.token, isAuthenticated: true, loading: false })

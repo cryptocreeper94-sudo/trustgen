@@ -28,6 +28,7 @@ import { InvestorPage } from './pages/InvestorPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { AffiliatePage } from './pages/AffiliatePage'
 import { SiteBuilderPage } from './pages/SiteBuilderPage'
+import { BetaPage } from './pages/BetaPage'
 
 /* ── Auth Guard ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -153,6 +154,7 @@ export default function App() {
         <Route path="/investors" element={<InvestorPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/beta" element={<BetaPage />} />
 
         {/* Protected routes */}
         <Route path="/dashboard" element={

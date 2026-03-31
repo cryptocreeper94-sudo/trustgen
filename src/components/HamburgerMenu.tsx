@@ -36,6 +36,7 @@ const NAV_GROUPS: NavGroup[] = [
     {
         label: 'Resources', icon: '📚',
         links: [
+            { label: 'Beta Program', path: '/beta', icon: '🧪' },
             { label: 'Blog', path: '/blog', icon: '📝' },
             { label: 'Investor Info', path: '/investors', icon: '📈' },
             { label: 'Dev Portal', path: '/dev-portal', icon: '🛠️' },

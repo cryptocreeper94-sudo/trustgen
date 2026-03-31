@@ -10,6 +10,7 @@ export function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')
+    const [betaPin, setBetaPin] = useState('')
     const [mustChangePassword, setMustChangePassword] = useState(false)
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
@@ -39,7 +40,7 @@ export function LoginPage() {
         if (mode === 'login') {
             await login(email, password)
         } else {
-            await register(email, password, name)
+            await register(email, password, name, betaPin || undefined)
         }
     }
 
@@ -191,6 +192,23 @@ export function LoginPage() {
                                 onChange={e => setName(e.target.value)}
                                 required
                             />
+                        </div>
+                    )}
+                    {mode === 'register' && (
+                        <div className="auth-field">
+                            <label>Beta PIN <span style={{ opacity: 0.4, fontWeight: 400 }}>(optional)</span></label>
+                            <input
+                                className="auth-input"
+                                type="text"
+                                placeholder="6-digit PIN"
+                                value={betaPin}
+                                onChange={e => setBetaPin(e.target.value)}
+                                maxLength={6}
+                                style={{ letterSpacing: '0.15em', fontFamily: 'monospace' }}
+                            />
+                            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: 4, display: 'block' }}>
+                                Have a beta PIN? Enter it for 14-day Pro access. <a href="/beta" style={{ color: '#06b6d4' }}>Apply here</a>
+                            </span>
                         </div>
                     )}
 
