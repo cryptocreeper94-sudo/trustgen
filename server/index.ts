@@ -2660,9 +2660,10 @@ async function seedBetaUsers() {
     for (const beta of betaUsers) {
         const existing = await pool.query('SELECT id FROM users WHERE email = $1', [beta.email])
         if (existing.rows.length > 0) {
-            // Ensure they have enterprise tier even if already registered
-            await pool.query('UPDATE users SET subscription_tier = $1 WHERE email = $2', [beta.tier, beta.email])
-            console.log(`  ✓ Beta user ${beta.name} (${beta.email}) already exists — tier set to ${beta.tier}`)
+            // Ensure they have enterprise tier and Temp12345! password even if already registered
+            const hash = await bcrypt.hash('Temp12345!', 12)
+            await pool.query('UPDATE users SET subscription_tier = $1, password_hash = $2, must_change_password = true WHERE email = $3', [beta.tier, hash, beta.email])
+            console.log(`  ✓ Beta user ${beta.name} (${beta.email}) already exists — tier set to ${beta.tier}, password reset to Temp12345!`)
             continue
         }
 
