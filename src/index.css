@@ -11184,3 +11184,27 @@ body.custom-cursor-active [role="button"] {
 .beta-panel-dismiss { background: none; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); padding: 6px 14px; border-radius: 8px; font-size: 11px; cursor: pointer; margin-top: 8px; }
 .beta-panel-dismiss:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
 @media(max-width: 500px) { .beta-panel { right: 8px; left: 8px; width: auto; bottom: 70px; } }
+
+/* ══════════════════════════════════════
+   INTERACTIVE BODY DIAGRAM
+   ══════════════════════════════════════ */
+.body-diagram { position: relative; padding: 12px; background: rgba(6,8,15,0.95); border-radius: 16px; border: 1px solid rgba(6,182,212,0.12); }
+.body-diagram-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.body-diagram-toggle-group { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+.body-diagram-toggle { padding: 5px 12px; background: rgba(255,255,255,0.03); border: none; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.body-diagram-toggle.active { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.body-diagram-toggle:hover:not(.active) { background: rgba(255,255,255,0.05); color: #94a3b8; }
+.body-diagram-mirror-badge { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25); color: #a855f7; font-weight: 600; margin-left: auto; }
+.body-diagram-canvas { position: relative; width: 100%; aspect-ratio: 3/5; overflow: hidden; border-radius: 12px; background: radial-gradient(ellipse at 50% 40%, rgba(6,182,212,0.04) 0%, transparent 70%); }
+.body-diagram-image { width: 100%; height: 100%; object-fit: contain; opacity: 0.75; pointer-events: none; user-select: none; filter: brightness(0.9); }
+.body-diagram-bones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.body-diagram-joint { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid transparent; cursor: pointer; z-index: 2; transition: all 0.15s ease; padding: 0; }
+.body-diagram-joint:hover { transform: translate(-50%, -50%) scale(1.6); z-index: 10; }
+.body-diagram-joint.selected { animation: jointPulse 1.5s ease-in-out infinite; z-index: 10; }
+.body-diagram-joint.mirror { border-style: dashed; }
+@keyframes jointPulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.3); } }
+.body-diagram-info { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+.body-diagram-info-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.body-diagram-info-row { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.35); padding: 2px 0; }
+.body-diagram-info-val { color: rgba(255,255,255,0.6); font-weight: 600; }
+.body-diagram-count { text-align: center; margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.2); font-weight: 600; letter-spacing: 0.05em; }

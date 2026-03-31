@@ -12,6 +12,7 @@ import { AIMegaPanel } from './AIMegaPanel'
 import { PublishTab } from './PublishTab'
 import { LumeScriptPanel } from './LumeScriptPanel'
 import { InfoBubble } from './Tooltip'
+import { InteractiveBodyDiagram } from './InteractiveBodyDiagram'
 import { getParticleConfig } from './ParticleSystem'
 import type {
     SidebarTab, MaterialPreset, EnvironmentPreset,
@@ -290,9 +291,17 @@ function RiggingControls({ nodeId }: { nodeId: string | null }) {
                     </span>
                     <InfoBubble text="Auto-rigging works best with models in T-pose (arms extended). The system places joint markers at body landmarks, then generates a bone hierarchy with automatic weight painting for mesh deformation." />
                 </div>
-                <div className="control-row" style={{ marginBottom: 8 }}>
+
+                {/* Interactive Body Diagram */}
+                <InteractiveBodyDiagram
+                    selectedJoint={null}
+                    onSelectJoint={() => {}}
+                    mirrorMode={false}
+                />
+
+                <div className="control-row" style={{ marginBottom: 8, marginTop: 10 }}>
                     <span className="control-label">Template</span>
-                    <InfoBubble text="Templates define preset joint positions. Humanoid (23 joints) for characters, Quadruped (18 joints) for animals, Simple (5 joints) for props, or Custom for freeform joint placement." />
+                    <InfoBubble text="Templates define preset joint positions. Humanoid (55 joints) for characters, Quadruped (18 joints) for animals, Simple (5 joints) for props, or Custom for freeform joint placement." />
                     <select
                         value={template}
                         onChange={e => setTemplate(e.target.value as RigTemplateName)}
@@ -356,8 +365,18 @@ function RiggingControls({ nodeId }: { nodeId: string | null }) {
                 </div>
             )}
 
+            {/* Interactive Body Diagram */}
+            <InteractiveBodyDiagram
+                selectedJoint={useRigStore.getState().activeMarkerId}
+                onSelectJoint={(name) => {
+                    const m = markers.find(m => m.name === name)
+                    if (m) useRigStore.getState().setActiveMarker(m.id)
+                }}
+                mirrorMode={mirrorMode}
+            />
+
             {/* Joint List */}
-            <div className="rig-joint-list">
+            <div className="rig-joint-list" style={{ maxHeight: 160 }}>
                 {markers.map(marker => (
                     <div
                         key={marker.id}

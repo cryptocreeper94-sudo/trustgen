@@ -69,14 +69,53 @@ const Select: React.FC<{
     </div>
 )
 
+// Photorealistic preset thumbnails
+const PRESET_IMAGES: Record<string, string> = {
+    warrior: '/presets/warrior.png',
+    athlete: '/presets/athlete.png',
+    casual: '/presets/casual.png',
+    executive: '/presets/business.png',
+    narrator: '/presets/business.png',
+    presenter: '/presets/business.png',
+    scientist: '/presets/sci-fi.png',
+    child: '/presets/casual.png',
+    wolf: '/presets/wolf.png',
+    dog: '/presets/wolf.png',
+    cat: '/presets/wolf.png',
+    horse: '/presets/wolf.png',
+    bear: '/presets/wolf.png',
+    eagle: '/presets/eagle.png',
+    parrot: '/presets/eagle.png',
+    dragon: '/presets/dragon.png',
+    butterfly: '/presets/eagle.png',
+    oak: '/presets/oak-tree.png',
+    pine: '/presets/oak-tree.png',
+    palm: '/presets/oak-tree.png',
+    bamboo: '/presets/oak-tree.png',
+    crystal: '/presets/crystal-rock.png',
+    granite: '/presets/crystal-rock.png',
+    sandstone: '/presets/crystal-rock.png',
+    obsidian: '/presets/crystal-rock.png',
+}
+
 const PresetCard: React.FC<{
     preset: GeneratorPreset<any>; selected: boolean; onClick: () => void
-}> = ({ preset, selected, onClick }) => (
-    <button onClick={onClick} style={{ ...styles.presetCard, ...(selected ? styles.presetCardActive : {}) }}>
-        <span style={styles.presetIcon}>{preset.icon}</span>
-        <span style={styles.presetName}>{preset.name}</span>
-    </button>
-)
+}> = ({ preset, selected, onClick }) => {
+    const imgSrc = PRESET_IMAGES[preset.id] || PRESET_IMAGES[preset.name?.toLowerCase()] || null
+    return (
+        <button onClick={onClick} style={{ ...styles.presetCard, ...(selected ? styles.presetCardActive : {}), padding: 0, overflow: 'hidden' }}>
+            {imgSrc ? (
+                <div style={styles.presetImageWrap}>
+                    <img src={imgSrc} alt={preset.name} style={styles.presetImage} draggable={false} />
+                    <div style={styles.presetImageOverlay} />
+                </div>
+            ) : (
+                <span style={styles.presetIcon}>{preset.icon}</span>
+            )}
+            <span style={{ ...styles.presetName, padding: '4px 2px 6px' }}>{preset.name}</span>
+        </button>
+    )
+}
 
 const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
     <div style={styles.sectionHeader}>
@@ -555,6 +594,25 @@ const styles: Record<string, React.CSSProperties> = {
         fontWeight: 600,
         textAlign: 'center' as any,
         lineHeight: '1.2',
+    },
+    presetImageWrap: {
+        position: 'relative' as any,
+        width: '100%',
+        aspectRatio: '1',
+        overflow: 'hidden',
+        borderRadius: '6px 6px 0 0',
+    },
+    presetImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover' as any,
+        transition: 'transform 0.3s ease',
+    },
+    presetImageOverlay: {
+        position: 'absolute' as any,
+        inset: 0,
+        background: 'linear-gradient(to top, rgba(6,8,15,0.8) 0%, transparent 60%)',
+        pointerEvents: 'none' as any,
     },
     sliderRow: {
         display: 'flex',

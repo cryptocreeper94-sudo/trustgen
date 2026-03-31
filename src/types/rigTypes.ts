@@ -69,46 +69,87 @@ export interface RigState {
     bones: BoneDefinition[]
 }
 
-// ── Humanoid Template (23 joints) ──
+// ── Humanoid Template (55 joints — full 5-finger) ──
 export const HUMANOID_TEMPLATE: RigTemplate = {
     name: 'humanoid',
     label: 'Humanoid',
     icon: '🧍',
     joints: [
-        // Spine
+        // ── Spine Chain (6 joints) ──
         { name: 'Hips', type: 'ball', defaultPosition: { x: 0, y: 0.45, z: 0 }, parentName: null, mirrorName: null, color: '#06b6d4' },
-        { name: 'Spine', type: 'fixed', defaultPosition: { x: 0, y: 0.55, z: 0 }, parentName: 'Hips', mirrorName: null, color: '#06b6d4' },
-        { name: 'Chest', type: 'fixed', defaultPosition: { x: 0, y: 0.65, z: 0 }, parentName: 'Spine', mirrorName: null, color: '#06b6d4' },
-        { name: 'Neck', type: 'ball', defaultPosition: { x: 0, y: 0.82, z: 0 }, parentName: 'Chest', mirrorName: null, color: '#22d3ee' },
+        { name: 'Spine', type: 'fixed', defaultPosition: { x: 0, y: 0.52, z: 0 }, parentName: 'Hips', mirrorName: null, color: '#06b6d4' },
+        { name: 'Chest', type: 'fixed', defaultPosition: { x: 0, y: 0.60, z: 0 }, parentName: 'Spine', mirrorName: null, color: '#06b6d4' },
+        { name: 'UpperChest', type: 'fixed', defaultPosition: { x: 0, y: 0.68, z: 0 }, parentName: 'Chest', mirrorName: null, color: '#06b6d4' },
+        { name: 'Neck', type: 'ball', defaultPosition: { x: 0, y: 0.82, z: 0 }, parentName: 'UpperChest', mirrorName: null, color: '#22d3ee' },
         { name: 'Head', type: 'fixed', defaultPosition: { x: 0, y: 0.95, z: 0 }, parentName: 'Neck', mirrorName: null, color: '#22d3ee' },
 
-        // Left Arm
-        { name: 'L_Shoulder', type: 'ball', defaultPosition: { x: -0.18, y: 0.78, z: 0 }, parentName: 'Chest', mirrorName: 'R_Shoulder', color: '#14b8a6' },
-        { name: 'L_Elbow', type: 'hinge', defaultPosition: { x: -0.35, y: 0.6, z: 0 }, parentName: 'L_Shoulder', mirrorName: 'R_Elbow', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#14b8a6' },
-        { name: 'L_Wrist', type: 'ball', defaultPosition: { x: -0.5, y: 0.45, z: 0 }, parentName: 'L_Elbow', mirrorName: 'R_Wrist', color: '#14b8a6' },
+        // ── Left Arm Chain (5 joints) ──
+        { name: 'L_Shoulder', type: 'ball', defaultPosition: { x: -0.16, y: 0.76, z: 0 }, parentName: 'UpperChest', mirrorName: 'R_Shoulder', color: '#14b8a6' },
+        { name: 'L_UpperArm', type: 'ball', defaultPosition: { x: -0.22, y: 0.68, z: 0 }, parentName: 'L_Shoulder', mirrorName: 'R_UpperArm', color: '#14b8a6' },
+        { name: 'L_Elbow', type: 'hinge', defaultPosition: { x: -0.32, y: 0.56, z: 0 }, parentName: 'L_UpperArm', mirrorName: 'R_Elbow', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#14b8a6' },
+        { name: 'L_ForeArm', type: 'fixed', defaultPosition: { x: -0.40, y: 0.50, z: 0 }, parentName: 'L_Elbow', mirrorName: 'R_ForeArm', color: '#14b8a6' },
+        { name: 'L_Wrist', type: 'ball', defaultPosition: { x: -0.48, y: 0.44, z: 0 }, parentName: 'L_ForeArm', mirrorName: 'R_Wrist', color: '#14b8a6' },
 
-        // Right Arm
-        { name: 'R_Shoulder', type: 'ball', defaultPosition: { x: 0.18, y: 0.78, z: 0 }, parentName: 'Chest', mirrorName: 'L_Shoulder', color: '#0ea5e9' },
-        { name: 'R_Elbow', type: 'hinge', defaultPosition: { x: 0.35, y: 0.6, z: 0 }, parentName: 'R_Shoulder', mirrorName: 'L_Elbow', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#0ea5e9' },
-        { name: 'R_Wrist', type: 'ball', defaultPosition: { x: 0.5, y: 0.45, z: 0 }, parentName: 'R_Elbow', mirrorName: 'L_Wrist', color: '#0ea5e9' },
+        // ── Right Arm Chain (5 joints) ──
+        { name: 'R_Shoulder', type: 'ball', defaultPosition: { x: 0.16, y: 0.76, z: 0 }, parentName: 'UpperChest', mirrorName: 'L_Shoulder', color: '#0ea5e9' },
+        { name: 'R_UpperArm', type: 'ball', defaultPosition: { x: 0.22, y: 0.68, z: 0 }, parentName: 'R_Shoulder', mirrorName: 'L_UpperArm', color: '#0ea5e9' },
+        { name: 'R_Elbow', type: 'hinge', defaultPosition: { x: 0.32, y: 0.56, z: 0 }, parentName: 'R_UpperArm', mirrorName: 'L_Elbow', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#0ea5e9' },
+        { name: 'R_ForeArm', type: 'fixed', defaultPosition: { x: 0.40, y: 0.50, z: 0 }, parentName: 'R_Elbow', mirrorName: 'L_ForeArm', color: '#0ea5e9' },
+        { name: 'R_Wrist', type: 'ball', defaultPosition: { x: 0.48, y: 0.44, z: 0 }, parentName: 'R_Elbow', mirrorName: 'L_Wrist', color: '#0ea5e9' },
 
-        // Left Leg
-        { name: 'L_Hip', type: 'ball', defaultPosition: { x: -0.1, y: 0.42, z: 0 }, parentName: 'Hips', mirrorName: 'R_Hip', color: '#34d399' },
-        { name: 'L_Knee', type: 'hinge', defaultPosition: { x: -0.1, y: 0.22, z: 0.02 }, parentName: 'L_Hip', mirrorName: 'R_Knee', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#34d399' },
-        { name: 'L_Ankle', type: 'ball', defaultPosition: { x: -0.1, y: 0.04, z: 0 }, parentName: 'L_Knee', mirrorName: 'R_Ankle', color: '#34d399' },
-        { name: 'L_Toe', type: 'fixed', defaultPosition: { x: -0.1, y: 0.01, z: 0.06 }, parentName: 'L_Ankle', mirrorName: 'R_Toe', color: '#34d399' },
+        // ── Left Hand — Thumb (3 joints) ──
+        { name: 'L_Thumb_Meta', type: 'ball', defaultPosition: { x: -0.50, y: 0.43, z: 0.02 }, parentName: 'L_Wrist', mirrorName: 'R_Thumb_Meta', color: '#2dd4bf' },
+        { name: 'L_Thumb_Prox', type: 'hinge', defaultPosition: { x: -0.52, y: 0.42, z: 0.03 }, parentName: 'L_Thumb_Meta', mirrorName: 'R_Thumb_Prox', hingeAxis: { x: 0, y: 0, z: 1 }, color: '#2dd4bf' },
+        { name: 'L_Thumb_Dist', type: 'fixed', defaultPosition: { x: -0.54, y: 0.41, z: 0.04 }, parentName: 'L_Thumb_Prox', mirrorName: 'R_Thumb_Dist', color: '#2dd4bf' },
+        // ── Left Hand — Index (3 joints) ──
+        { name: 'L_Index_Meta', type: 'ball', defaultPosition: { x: -0.51, y: 0.43, z: 0.01 }, parentName: 'L_Wrist', mirrorName: 'R_Index_Meta', color: '#2dd4bf' },
+        { name: 'L_Index_Prox', type: 'hinge', defaultPosition: { x: -0.53, y: 0.42, z: 0.01 }, parentName: 'L_Index_Meta', mirrorName: 'R_Index_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#2dd4bf' },
+        { name: 'L_Index_Dist', type: 'fixed', defaultPosition: { x: -0.55, y: 0.41, z: 0.01 }, parentName: 'L_Index_Prox', mirrorName: 'R_Index_Dist', color: '#2dd4bf' },
+        // ── Left Hand — Middle (3 joints) ──
+        { name: 'L_Middle_Meta', type: 'ball', defaultPosition: { x: -0.51, y: 0.43, z: 0 }, parentName: 'L_Wrist', mirrorName: 'R_Middle_Meta', color: '#2dd4bf' },
+        { name: 'L_Middle_Prox', type: 'hinge', defaultPosition: { x: -0.54, y: 0.42, z: 0 }, parentName: 'L_Middle_Meta', mirrorName: 'R_Middle_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#2dd4bf' },
+        { name: 'L_Middle_Dist', type: 'fixed', defaultPosition: { x: -0.56, y: 0.41, z: 0 }, parentName: 'L_Middle_Prox', mirrorName: 'R_Middle_Dist', color: '#2dd4bf' },
+        // ── Left Hand — Ring (3 joints) ──
+        { name: 'L_Ring_Meta', type: 'ball', defaultPosition: { x: -0.51, y: 0.43, z: -0.01 }, parentName: 'L_Wrist', mirrorName: 'R_Ring_Meta', color: '#2dd4bf' },
+        { name: 'L_Ring_Prox', type: 'hinge', defaultPosition: { x: -0.53, y: 0.42, z: -0.01 }, parentName: 'L_Ring_Meta', mirrorName: 'R_Ring_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#2dd4bf' },
+        { name: 'L_Ring_Dist', type: 'fixed', defaultPosition: { x: -0.55, y: 0.41, z: -0.01 }, parentName: 'L_Ring_Prox', mirrorName: 'R_Ring_Dist', color: '#2dd4bf' },
+        // ── Left Hand — Pinky (3 joints) ──
+        { name: 'L_Pinky_Meta', type: 'ball', defaultPosition: { x: -0.50, y: 0.43, z: -0.02 }, parentName: 'L_Wrist', mirrorName: 'R_Pinky_Meta', color: '#2dd4bf' },
+        { name: 'L_Pinky_Prox', type: 'hinge', defaultPosition: { x: -0.52, y: 0.42, z: -0.02 }, parentName: 'L_Pinky_Meta', mirrorName: 'R_Pinky_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#2dd4bf' },
+        { name: 'L_Pinky_Dist', type: 'fixed', defaultPosition: { x: -0.53, y: 0.41, z: -0.02 }, parentName: 'L_Pinky_Prox', mirrorName: 'R_Pinky_Dist', color: '#2dd4bf' },
 
-        // Right Leg
-        { name: 'R_Hip', type: 'ball', defaultPosition: { x: 0.1, y: 0.42, z: 0 }, parentName: 'Hips', mirrorName: 'L_Hip', color: '#38bdf8' },
-        { name: 'R_Knee', type: 'hinge', defaultPosition: { x: 0.1, y: 0.22, z: 0.02 }, parentName: 'R_Hip', mirrorName: 'L_Knee', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
-        { name: 'R_Ankle', type: 'ball', defaultPosition: { x: 0.1, y: 0.04, z: 0 }, parentName: 'R_Knee', mirrorName: 'L_Ankle', color: '#38bdf8' },
-        { name: 'R_Toe', type: 'fixed', defaultPosition: { x: 0.1, y: 0.01, z: 0.06 }, parentName: 'R_Ankle', mirrorName: 'L_Toe', color: '#38bdf8' },
+        // ── Right Hand — Thumb (3 joints) ──
+        { name: 'R_Thumb_Meta', type: 'ball', defaultPosition: { x: 0.50, y: 0.43, z: 0.02 }, parentName: 'R_Wrist', mirrorName: 'L_Thumb_Meta', color: '#38bdf8' },
+        { name: 'R_Thumb_Prox', type: 'hinge', defaultPosition: { x: 0.52, y: 0.42, z: 0.03 }, parentName: 'R_Thumb_Meta', mirrorName: 'L_Thumb_Prox', hingeAxis: { x: 0, y: 0, z: 1 }, color: '#38bdf8' },
+        { name: 'R_Thumb_Dist', type: 'fixed', defaultPosition: { x: 0.54, y: 0.41, z: 0.04 }, parentName: 'R_Thumb_Prox', mirrorName: 'L_Thumb_Dist', color: '#38bdf8' },
+        // ── Right Hand — Index (3 joints) ──
+        { name: 'R_Index_Meta', type: 'ball', defaultPosition: { x: 0.51, y: 0.43, z: 0.01 }, parentName: 'R_Wrist', mirrorName: 'L_Index_Meta', color: '#38bdf8' },
+        { name: 'R_Index_Prox', type: 'hinge', defaultPosition: { x: 0.53, y: 0.42, z: 0.01 }, parentName: 'R_Index_Meta', mirrorName: 'L_Index_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
+        { name: 'R_Index_Dist', type: 'fixed', defaultPosition: { x: 0.55, y: 0.41, z: 0.01 }, parentName: 'R_Index_Prox', mirrorName: 'L_Index_Dist', color: '#38bdf8' },
+        // ── Right Hand — Middle (3 joints) ──
+        { name: 'R_Middle_Meta', type: 'ball', defaultPosition: { x: 0.51, y: 0.43, z: 0 }, parentName: 'R_Wrist', mirrorName: 'L_Middle_Meta', color: '#38bdf8' },
+        { name: 'R_Middle_Prox', type: 'hinge', defaultPosition: { x: 0.54, y: 0.42, z: 0 }, parentName: 'R_Middle_Meta', mirrorName: 'L_Middle_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
+        { name: 'R_Middle_Dist', type: 'fixed', defaultPosition: { x: 0.56, y: 0.41, z: 0 }, parentName: 'R_Middle_Prox', mirrorName: 'L_Middle_Dist', color: '#38bdf8' },
+        // ── Right Hand — Ring (3 joints) ──
+        { name: 'R_Ring_Meta', type: 'ball', defaultPosition: { x: 0.51, y: 0.43, z: -0.01 }, parentName: 'R_Wrist', mirrorName: 'L_Ring_Meta', color: '#38bdf8' },
+        { name: 'R_Ring_Prox', type: 'hinge', defaultPosition: { x: 0.53, y: 0.42, z: -0.01 }, parentName: 'R_Ring_Meta', mirrorName: 'L_Ring_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
+        { name: 'R_Ring_Dist', type: 'fixed', defaultPosition: { x: 0.55, y: 0.41, z: -0.01 }, parentName: 'R_Ring_Prox', mirrorName: 'L_Ring_Dist', color: '#38bdf8' },
+        // ── Right Hand — Pinky (3 joints) ──
+        { name: 'R_Pinky_Meta', type: 'ball', defaultPosition: { x: 0.50, y: 0.43, z: -0.02 }, parentName: 'R_Wrist', mirrorName: 'L_Pinky_Meta', color: '#38bdf8' },
+        { name: 'R_Pinky_Prox', type: 'hinge', defaultPosition: { x: 0.52, y: 0.42, z: -0.02 }, parentName: 'R_Pinky_Meta', mirrorName: 'L_Pinky_Prox', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
+        { name: 'R_Pinky_Dist', type: 'fixed', defaultPosition: { x: 0.53, y: 0.41, z: -0.02 }, parentName: 'R_Pinky_Prox', mirrorName: 'L_Pinky_Dist', color: '#38bdf8' },
 
-        // Fingers (simplified — thumb + index + middle per hand)
-        { name: 'L_Thumb', type: 'hinge', defaultPosition: { x: -0.52, y: 0.43, z: 0.02 }, parentName: 'L_Wrist', mirrorName: 'R_Thumb', color: '#14b8a6' },
-        { name: 'R_Thumb', type: 'hinge', defaultPosition: { x: 0.52, y: 0.43, z: 0.02 }, parentName: 'R_Wrist', mirrorName: 'L_Thumb', color: '#0ea5e9' },
-        { name: 'L_FingerTip', type: 'fixed', defaultPosition: { x: -0.55, y: 0.42, z: 0 }, parentName: 'L_Wrist', mirrorName: 'R_FingerTip', color: '#14b8a6' },
-        { name: 'R_FingerTip', type: 'fixed', defaultPosition: { x: 0.55, y: 0.42, z: 0 }, parentName: 'R_Wrist', mirrorName: 'L_FingerTip', color: '#0ea5e9' },
+        // ── Left Leg Chain (4 joints) ──
+        { name: 'L_Hip', type: 'ball', defaultPosition: { x: -0.10, y: 0.42, z: 0 }, parentName: 'Hips', mirrorName: 'R_Hip', color: '#34d399' },
+        { name: 'L_Knee', type: 'hinge', defaultPosition: { x: -0.10, y: 0.22, z: 0.02 }, parentName: 'L_Hip', mirrorName: 'R_Knee', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#34d399' },
+        { name: 'L_Ankle', type: 'ball', defaultPosition: { x: -0.10, y: 0.04, z: 0 }, parentName: 'L_Knee', mirrorName: 'R_Ankle', color: '#34d399' },
+        { name: 'L_Toe', type: 'fixed', defaultPosition: { x: -0.10, y: 0.01, z: 0.06 }, parentName: 'L_Ankle', mirrorName: 'R_Toe', color: '#34d399' },
+
+        // ── Right Leg Chain (4 joints) ──
+        { name: 'R_Hip', type: 'ball', defaultPosition: { x: 0.10, y: 0.42, z: 0 }, parentName: 'Hips', mirrorName: 'L_Hip', color: '#38bdf8' },
+        { name: 'R_Knee', type: 'hinge', defaultPosition: { x: 0.10, y: 0.22, z: 0.02 }, parentName: 'R_Hip', mirrorName: 'L_Knee', hingeAxis: { x: 1, y: 0, z: 0 }, color: '#38bdf8' },
+        { name: 'R_Ankle', type: 'ball', defaultPosition: { x: 0.10, y: 0.04, z: 0 }, parentName: 'R_Knee', mirrorName: 'L_Ankle', color: '#38bdf8' },
+        { name: 'R_Toe', type: 'fixed', defaultPosition: { x: 0.10, y: 0.01, z: 0.06 }, parentName: 'R_Ankle', mirrorName: 'L_Toe', color: '#38bdf8' },
     ],
 }
 
