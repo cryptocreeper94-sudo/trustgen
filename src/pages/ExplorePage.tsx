@@ -155,7 +155,7 @@ show me the scene`
                         </code>
                     </pre>
                     <div className="ide-status-bar">
-                        <span>✦ Lume v0.8.0</span>
+                        <span>✦ Lume v1.0.0</span>
                         <span>Tolerance Chain: 7 layers</span>
                         <span className="ide-status-ready">● Ready</span>
                     </div>
@@ -205,7 +205,7 @@ function StatsTicker() {
                 </div>
                 <div className="stat-divider" />
                 <div className="stat-item">
-                    <span className="stat-number gradient-text">34+</span>
+                    <span className="stat-number gradient-text">140+</span>
                     <span className="stat-label">English Patterns</span>
                 </div>
                 <div className="stat-divider" />
