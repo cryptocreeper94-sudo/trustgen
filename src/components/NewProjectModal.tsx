@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { PROJECT_TEMPLATES, type ProjectTemplate } from '../engine/ProjectTemplates'
 import { IMAGE_ASSETS } from '../engine/ImageAssets'
 import { InfoBubble } from './Tooltip'
+import { useStoryStore } from '../stores/storyStore'
 
 interface NewProjectModalProps {
     open: boolean
@@ -20,8 +21,8 @@ type ModalView = 'choose' | 'templates' | 'story-mode'
 
 export function NewProjectModal({ open, onClose, onSelectTemplate, onStartStoryMode, onStartBlank }: NewProjectModalProps) {
     const [view, setView] = useState<ModalView>('choose')
-    const [storyText, setStoryText] = useState('')
-    const [storyStyle, setStoryStyle] = useState('documentary')
+    const { text: storyText, style: storyStyle, setText: setStoryText, setStyle, setTitle, generateDocumentary } = useStoryStore()
+    const setStoryStyle = (s: string) => setStyle(s as any)
 
     if (!open) return null
 
@@ -149,7 +150,11 @@ export function NewProjectModal({ open, onClose, onSelectTemplate, onStartStoryM
                             <button
                                 className="newproject-story-generate"
                                 disabled={storyText.split(/\s+/).filter(Boolean).length < 10}
-                                onClick={() => onStartStoryMode(storyText, storyStyle)}
+                                onClick={() => {
+                                    setTitle('Documentary')
+                                    generateDocumentary()
+                                    onStartStoryMode(storyText, storyStyle)
+                                }}
                             >
                                 🎬 Generate Documentary
                             </button>

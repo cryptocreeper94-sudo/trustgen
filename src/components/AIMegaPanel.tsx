@@ -11,6 +11,7 @@
 import { useState } from 'react'
 import { AIGenerationPanel } from './AIPanel'
 import { InfoBubble } from './Tooltip'
+import { useStoryStore } from '../stores/storyStore'
 
 // ── Sub-panel definitions ──
 
@@ -102,40 +103,104 @@ function CharacterPanel() {
 }
 
 function StoryModePanel() {
-    const [text, setText] = useState('')
-    const [style, setStyle] = useState('documentary')
-    const STYLES = ['documentary', 'explainer', 'dramatic', 'educational', 'cinematic']
+    const {
+        text, style, title, status, progress, error, summary, shots,
+        setText, setStyle, setTitle, generateDocumentary, reset,
+    } = useStoryStore()
+
+    const STYLES = ['documentary', 'explainer', 'dramatic', 'educational', 'cinematic'] as const
+    const wordCount = text.split(/\s+/).filter(Boolean).length
+    const isGenerating = status !== 'idle' && status !== 'ready' && status !== 'done' && status !== 'error'
 
     return (
         <div className="ai-sub-content">
-            <div className="ai-sub-row">
-                <label>Story Text <InfoBubble text="Paste ebook chapters, articles, or scripts. Story Mode auto-splits text into scenes, selects environments, places cameras, and estimates narration duration. Connect TrustBook to import directly." /></label>
-                <textarea
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    placeholder="Paste your ebook text, article, or script here..."
-                    rows={6}
-                    className="ai-textarea"
-                />
-                <div className="ai-word-count">{text.split(/\s+/).filter(Boolean).length} words</div>
-            </div>
-            <div className="ai-sub-row">
-                <label>Style</label>
-                <div className="ai-preset-grid">
-                    {STYLES.map(s => (
-                        <button
-                            key={s}
-                            className={`ai-preset-btn ${style === s ? 'active' : ''}`}
-                            onClick={() => setStyle(s)}
-                        >
-                            {s}
+            {status === 'ready' || status === 'done' ? (
+                /* ── Results View ── */
+                <div className="ai-story-results">
+                    <div className="ai-story-summary">{summary}</div>
+                    <div className="ai-story-shots">
+                        {shots.map((s, i) => (
+                            <div key={s.id} className="ai-story-shot">
+                                <span className="ai-story-shot-idx">{i + 1}</span>
+                                <span className="ai-story-shot-name">{s.name}</span>
+                                <span className="ai-story-shot-dur">{Math.ceil(s.duration)}s</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="ai-story-actions">
+                        <button className="ai-generate-btn" onClick={reset}>
+                            ↩ New Documentary
                         </button>
-                    ))}
+                    </div>
                 </div>
-            </div>
-            <button className="ai-generate-btn" disabled={!text.trim()}>
-                📖 Generate Documentary
-            </button>
+            ) : (
+                /* ── Input View ── */
+                <>
+                    <div className="ai-sub-row">
+                        <label>Title</label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            placeholder="My Documentary"
+                            className="ai-input"
+                        />
+                    </div>
+                    <div className="ai-sub-row">
+                        <label>Story Text <InfoBubble text="Paste ebook chapters, articles, or scripts. Story Mode auto-splits text into scenes, selects environments, places cameras, and estimates narration duration. Connect TrustBook to import directly." /></label>
+                        <textarea
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            placeholder="Paste your ebook text, article, or script here..."
+                            rows={6}
+                            className="ai-textarea"
+                            disabled={isGenerating}
+                        />
+                        <div className="ai-word-count">
+                            {wordCount} words • ~{Math.ceil(wordCount / 150)} min narration • ~{Math.ceil(text.split(/\n\s*\n/).filter(p => p.trim()).length)} scenes
+                        </div>
+                    </div>
+                    <div className="ai-sub-row">
+                        <label>Style</label>
+                        <div className="ai-preset-grid">
+                            {STYLES.map(s => (
+                                <button
+                                    key={s}
+                                    className={`ai-preset-btn ${style === s ? 'active' : ''}`}
+                                    onClick={() => setStyle(s)}
+                                    disabled={isGenerating}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {isGenerating && (
+                        <div className="ai-story-progress">
+                            <div className="ai-story-progress-bar">
+                                <div
+                                    className="ai-story-progress-fill"
+                                    style={{ width: `${progress.percent}%` }}
+                                />
+                            </div>
+                            <div className="ai-story-progress-label">{progress.label}</div>
+                        </div>
+                    )}
+
+                    {/* Error */}
+                    {error && <div className="ai-story-error">⚠️ {error}</div>}
+
+                    <button
+                        className="ai-generate-btn"
+                        disabled={wordCount < 10 || isGenerating}
+                        onClick={generateDocumentary}
+                    >
+                        {isGenerating ? '⏳ Generating...' : '📖 Generate Documentary'}
+                    </button>
+                </>
+            )}
         </div>
     )
 }
