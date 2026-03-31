@@ -124,7 +124,7 @@ export function LumeStudioPanel() {
     const [result, setResult] = useState<CompileResult | null>(null)
     const [livePreview, setLivePreview] = useState(true)
     const [mobileView, setMobileView] = useState<'editor' | 'preview' | 'output'>('editor')
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
     // ── Auto-compile on code change (debounced) ──
     useEffect(() => {

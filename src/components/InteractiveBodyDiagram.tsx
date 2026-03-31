@@ -110,20 +110,25 @@ export function InteractiveBodyDiagram({ selectedJoint, onSelectJoint, mirrorMod
     const displayInfo = hoveredInfo || selectedInfo
 
     const bodyImage = gender === 'male' ? '/presets/body-male.png' : '/presets/body-female.png'
+    const frontToggleCls = "body-diagram-toggle" + (view === 'front' ? ' active' : '')
+    const backToggleCls = "body-diagram-toggle" + (view === 'back' ? ' active' : '')
+    const maleCls = "body-diagram-toggle" + (gender === 'male' ? ' active' : '')
+    const femaleCls = "body-diagram-toggle" + (gender === 'female' ? ' active' : '')
+    const fingersCls = "body-diagram-toggle" + (showFingers ? ' active' : '')
 
     return (
         <div className="body-diagram">
             {/* Controls Bar */}
             <div className="body-diagram-controls">
                 <div className="body-diagram-toggle-group">
-                    <button className={ody-diagram-toggle } onClick={() => setView('front')}>Front</button>
-                    <button className={ody-diagram-toggle } onClick={() => setView('back')}>Back</button>
+                    <button className={frontToggleCls} onClick={() => setView('front')}>Front</button>
+                    <button className={backToggleCls} onClick={() => setView('back')}>Back</button>
                 </div>
                 <div className="body-diagram-toggle-group">
-                    <button className={ody-diagram-toggle } onClick={() => setGender('male')}>♂</button>
-                    <button className={ody-diagram-toggle } onClick={() => setGender('female')}>♀</button>
+                    <button className={maleCls} onClick={() => setGender('male')}>♂</button>
+                    <button className={femaleCls} onClick={() => setGender('female')}>♀</button>
                 </div>
-                <button className={ody-diagram-toggle } onClick={() => setShowFingers(!showFingers)} style={{ fontSize: '10px' }}>
+                <button className={fingersCls} onClick={() => setShowFingers(!showFingers)} style={{ fontSize: '10px' }}>
                     🤚 Fingers
                 </button>
                 {mirrorMode && <span className="body-diagram-mirror-badge">⟷ Mirror</span>}
@@ -143,11 +148,12 @@ export function InteractiveBodyDiagram({ selectedJoint, onSelectJoint, mirrorMod
                     const color = GROUP_COLORS[group] || '#06b6d4'
                     const isFingerJoint = group.includes('Hand')
                     const size = isFingerJoint ? 6 : isSelected ? 14 : isHovered ? 12 : 8
+                    const jointCls = "body-diagram-joint" + (isSelected ? ' selected' : '') + (isMirror ? ' mirror' : '')
 
                     return (
                         <button
                             key={name}
-                            className={ody-diagram-joint   }
+                            className={jointCls}
                             style={{
                                 left: coords.x + '%',
                                 top: coords.y + '%',

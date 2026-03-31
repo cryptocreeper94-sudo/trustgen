@@ -29,7 +29,7 @@ export function BetaMilestonePanel() {
     const progress = (data.completedCount / data.totalCount) * 100
 
     return (
-        <div className={eta-panel }>
+        <div className={`beta-panel ${isFounder ? 'founder' : ''}`}>
             <div className="beta-panel-header" onClick={() => setCollapsed(!collapsed)}>
                 <div className="beta-panel-title">
                     <span>{isFounder ? '🏆' : '🧪'}</span>
@@ -57,7 +57,7 @@ export function BetaMilestonePanel() {
                             </div>
                             <div className="beta-panel-list">
                                 {data.milestones.map(m => (
-                                    <div key={m.key} className={eta-panel-item }>
+                                    <div key={m.key} className={`beta-panel-item ${m.completed ? 'done' : ''}`}>
                                         <span className="beta-panel-check">{m.completed ? '✓' : m.order}</span>
                                         <div>
                                             <strong>{m.title}</strong>
