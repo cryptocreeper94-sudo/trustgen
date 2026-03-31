@@ -12,6 +12,7 @@
  * NO external 3D services — everything is generated procedurally.
  */
 import * as THREE from 'three'
+import { generateProceduralTexture, materialToTexturePreset } from './ProceduralTextures'
 
 // ── Scene Graph Types (the intermediate representation) ──
 
@@ -31,6 +32,8 @@ export interface SceneGraphNode {
     position: { x: number; y: number; z: number }
     /** Rotation in degrees */
     rotation: { x: number; y: number; z: number }
+    /** Material keyword (for procedural texture lookup) */
+    materialName?: string
     /** Material descriptor */
     material: {
         color: string       // hex color
@@ -262,6 +265,87 @@ const OBJECT_TEMPLATES: Record<string, () => SceneGraphNode[]> = {
         { name: 'L Leg', shape: 'cylinder', size: { x: 0.08, y: 0.5, z: 0.08 }, position: { x: -0.12, y: 0.45, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#696969', metalness: 0.8, roughness: 0.3 } },
         { name: 'R Leg', shape: 'cylinder', size: { x: 0.08, y: 0.5, z: 0.08 }, position: { x: 0.12, y: 0.45, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#696969', metalness: 0.8, roughness: 0.3 } },
     ],
+    // ── NEW: Expanded template library ──
+    castle: () => [
+        { name: 'Tower L', shape: 'cylinder', size: { x: 0.6, y: 3.0, z: 0.6 }, position: { x: -1.5, y: 1.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.95 }, materialName: 'stone' },
+        { name: 'Tower R', shape: 'cylinder', size: { x: 0.6, y: 3.0, z: 0.6 }, position: { x: 1.5, y: 1.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.95 }, materialName: 'stone' },
+        { name: 'Wall', shape: 'box', size: { x: 2.4, y: 2.0, z: 0.4 }, position: { x: 0, y: 1.0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.95 }, materialName: 'stone' },
+        { name: 'Battlement L', shape: 'cone', size: { x: 0.7, y: 0.8, z: 0.7 }, position: { x: -1.5, y: 3.4, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#A0522D', metalness: 0, roughness: 0.85 } },
+        { name: 'Battlement R', shape: 'cone', size: { x: 0.7, y: 0.8, z: 0.7 }, position: { x: 1.5, y: 3.4, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#A0522D', metalness: 0, roughness: 0.85 } },
+        { name: 'Gate', shape: 'box', size: { x: 0.8, y: 1.4, z: 0.5 }, position: { x: 0, y: 0.7, z: 0.22 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#654321', metalness: 0, roughness: 0.9 }, materialName: 'wood' },
+    ],
+    fortress: () => OBJECT_TEMPLATES.castle(),
+    spaceship: () => [
+        { name: 'Hull', shape: 'capsule', size: { x: 0.6, y: 2.0, z: 0.6 }, position: { x: 0, y: 0.5, z: 0 }, rotation: { x: 0, y: 0, z: 90 }, material: { color: '#A8A8A8', metalness: 0.95, roughness: 0.15 }, materialName: 'metal' },
+        { name: 'Cockpit', shape: 'sphere', size: { x: 0.4, y: 0.3, z: 0.4 }, position: { x: 1.0, y: 0.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#87CEEB', metalness: 0.1, roughness: 0.05, opacity: 0.4, transparent: true } },
+        { name: 'Wing L', shape: 'box', size: { x: 0.8, y: 0.04, z: 1.2 }, position: { x: -0.2, y: 0.4, z: -0.8 }, rotation: { x: 0, y: 0, z: -10 }, material: { color: '#696969', metalness: 0.9, roughness: 0.2 }, materialName: 'metal' },
+        { name: 'Wing R', shape: 'box', size: { x: 0.8, y: 0.04, z: 1.2 }, position: { x: -0.2, y: 0.4, z: 0.8 }, rotation: { x: 0, y: 0, z: 10 }, material: { color: '#696969', metalness: 0.9, roughness: 0.2 }, materialName: 'metal' },
+        { name: 'Engine L', shape: 'cylinder', size: { x: 0.15, y: 0.4, z: 0.15 }, position: { x: -1.0, y: 0.4, z: -0.5 }, rotation: { x: 0, y: 0, z: 90 }, material: { color: '#FF4500', metalness: 0, roughness: 0.3, emissive: '#FF4500', emissiveIntensity: 2 } },
+        { name: 'Engine R', shape: 'cylinder', size: { x: 0.15, y: 0.4, z: 0.15 }, position: { x: -1.0, y: 0.4, z: 0.5 }, rotation: { x: 0, y: 0, z: 90 }, material: { color: '#FF4500', metalness: 0, roughness: 0.3, emissive: '#FF4500', emissiveIntensity: 2 } },
+    ],
+    ship: () => OBJECT_TEMPLATES.spaceship(),
+    throne: () => [
+        { name: 'Seat', shape: 'box', size: { x: 0.7, y: 0.08, z: 0.6 }, position: { x: 0, y: 0.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#8B0000', metalness: 0, roughness: 0.65 }, materialName: 'leather' },
+        { name: 'Back', shape: 'box', size: { x: 0.7, y: 1.0, z: 0.08 }, position: { x: 0, y: 1.0, z: -0.26 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFD700', metalness: 0.9, roughness: 0.15 } },
+        { name: 'Arm L', shape: 'box', size: { x: 0.06, y: 0.3, z: 0.5 }, position: { x: -0.35, y: 0.65, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFD700', metalness: 0.9, roughness: 0.15 } },
+        { name: 'Arm R', shape: 'box', size: { x: 0.06, y: 0.3, z: 0.5 }, position: { x: 0.35, y: 0.65, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFD700', metalness: 0.9, roughness: 0.15 } },
+        { name: 'Leg FL', shape: 'cylinder', size: { x: 0.05, y: 0.48, z: 0.05 }, position: { x: -0.28, y: 0.24, z: 0.22 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFD700', metalness: 0.9, roughness: 0.15 } },
+        { name: 'Leg FR', shape: 'cylinder', size: { x: 0.05, y: 0.48, z: 0.05 }, position: { x: 0.28, y: 0.24, z: 0.22 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFD700', metalness: 0.9, roughness: 0.15 } },
+        { name: 'Finial', shape: 'octahedron', size: { x: 0.08, y: 0.1, z: 0.08 }, position: { x: 0, y: 1.55, z: -0.26 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#E0115F', metalness: 0.3, roughness: 0.1, emissive: '#E0115F', emissiveIntensity: 0.5 } },
+    ],
+    bridge: () => [
+        { name: 'Deck', shape: 'box', size: { x: 3.0, y: 0.1, z: 1.0 }, position: { x: 0, y: 0.8, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#8B4513', metalness: 0, roughness: 0.85 }, materialName: 'wood' },
+        { name: 'Rail L', shape: 'box', size: { x: 3.0, y: 0.5, z: 0.04 }, position: { x: 0, y: 1.1, z: -0.48 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#8B4513', metalness: 0, roughness: 0.85 }, materialName: 'wood' },
+        { name: 'Rail R', shape: 'box', size: { x: 3.0, y: 0.5, z: 0.04 }, position: { x: 0, y: 1.1, z: 0.48 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#8B4513', metalness: 0, roughness: 0.85 }, materialName: 'wood' },
+        { name: 'Support L', shape: 'cylinder', size: { x: 0.2, y: 1.2, z: 0.2 }, position: { x: -1.2, y: 0.2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.9 }, materialName: 'stone' },
+        { name: 'Support R', shape: 'cylinder', size: { x: 0.2, y: 1.2, z: 0.2 }, position: { x: 1.2, y: 0.2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.9 }, materialName: 'stone' },
+    ],
+    fountain: () => [
+        { name: 'Basin', shape: 'cylinder', size: { x: 1.2, y: 0.3, z: 1.2 }, position: { x: 0, y: 0.15, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#F5F5F5', metalness: 0.1, roughness: 0.3 }, materialName: 'marble' },
+        { name: 'Pedestal', shape: 'cylinder', size: { x: 0.25, y: 0.8, z: 0.25 }, position: { x: 0, y: 0.7, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#F5F5F5', metalness: 0.1, roughness: 0.3 }, materialName: 'marble' },
+        { name: 'Top Bowl', shape: 'cylinder', size: { x: 0.5, y: 0.15, z: 0.5 }, position: { x: 0, y: 1.18, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#F5F5F5', metalness: 0.1, roughness: 0.3 }, materialName: 'marble' },
+        { name: 'Water', shape: 'cylinder', size: { x: 1.1, y: 0.15, z: 1.1 }, position: { x: 0, y: 0.22, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#4682B4', metalness: 0, roughness: 0.05, opacity: 0.5, transparent: true } },
+    ],
+    tower: () => [
+        { name: 'Base', shape: 'cylinder', size: { x: 1.0, y: 0.4, z: 1.0 }, position: { x: 0, y: 0.2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.9 }, materialName: 'stone' },
+        { name: 'Shaft', shape: 'cylinder', size: { x: 0.7, y: 3.0, z: 0.7 }, position: { x: 0, y: 1.9, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.9 }, materialName: 'stone' },
+        { name: 'Roof', shape: 'cone', size: { x: 0.9, y: 1.0, z: 0.9 }, position: { x: 0, y: 3.9, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#A0522D', metalness: 0, roughness: 0.85 } },
+    ],
+    altar: () => [
+        { name: 'Base', shape: 'box', size: { x: 1.0, y: 0.3, z: 0.6 }, position: { x: 0, y: 0.15, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#F5F5F5', metalness: 0.1, roughness: 0.3 }, materialName: 'marble' },
+        { name: 'Top Slab', shape: 'box', size: { x: 1.2, y: 0.08, z: 0.7 }, position: { x: 0, y: 0.34, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#F5F5F5', metalness: 0.1, roughness: 0.3 }, materialName: 'marble' },
+        { name: 'Candle L', shape: 'cylinder', size: { x: 0.04, y: 0.25, z: 0.04 }, position: { x: -0.4, y: 0.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFFFF0', metalness: 0, roughness: 0.8 } },
+        { name: 'Candle R', shape: 'cylinder', size: { x: 0.04, y: 0.25, z: 0.04 }, position: { x: 0.4, y: 0.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FFFFF0', metalness: 0, roughness: 0.8 } },
+        { name: 'Flame L', shape: 'sphere', size: { x: 0.03, y: 0.05, z: 0.03 }, position: { x: -0.4, y: 0.65, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FF8C00', metalness: 0, roughness: 0.3, emissive: '#FF8C00', emissiveIntensity: 3 } },
+        { name: 'Flame R', shape: 'sphere', size: { x: 0.03, y: 0.05, z: 0.03 }, position: { x: 0.4, y: 0.65, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FF8C00', metalness: 0, roughness: 0.3, emissive: '#FF8C00', emissiveIntensity: 3 } },
+    ],
+    portal: () => [
+        { name: 'Frame L', shape: 'cylinder', size: { x: 0.15, y: 2.5, z: 0.15 }, position: { x: -0.8, y: 1.25, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#1C1C1C', metalness: 0.4, roughness: 0.1 }, materialName: 'stone' },
+        { name: 'Frame R', shape: 'cylinder', size: { x: 0.15, y: 2.5, z: 0.15 }, position: { x: 0.8, y: 1.25, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#1C1C1C', metalness: 0.4, roughness: 0.1 }, materialName: 'stone' },
+        { name: 'Arch', shape: 'torus', size: { x: 0.8, y: 0.12, z: 0.8 }, position: { x: 0, y: 2.5, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#1C1C1C', metalness: 0.4, roughness: 0.1 }, materialName: 'stone' },
+        { name: 'Vortex', shape: 'sphere', size: { x: 1.3, y: 2.0, z: 0.1 }, position: { x: 0, y: 1.4, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#7c3aed', metalness: 0, roughness: 0.1, opacity: 0.6, transparent: true, emissive: '#7c3aed', emissiveIntensity: 2 } },
+    ],
+    campfire: () => [
+        { name: 'Log 1', shape: 'cylinder', size: { x: 0.08, y: 0.5, z: 0.08 }, position: { x: -0.1, y: 0.08, z: 0 }, rotation: { x: 0, y: 0, z: 70 }, material: { color: '#654321', metalness: 0, roughness: 0.95 }, materialName: 'wood' },
+        { name: 'Log 2', shape: 'cylinder', size: { x: 0.08, y: 0.5, z: 0.08 }, position: { x: 0.1, y: 0.08, z: 0 }, rotation: { x: 0, y: 0, z: -70 }, material: { color: '#654321', metalness: 0, roughness: 0.95 }, materialName: 'wood' },
+        { name: 'Log 3', shape: 'cylinder', size: { x: 0.07, y: 0.45, z: 0.07 }, position: { x: 0, y: 0.08, z: 0.1 }, rotation: { x: 70, y: 0, z: 0 }, material: { color: '#654321', metalness: 0, roughness: 0.95 }, materialName: 'wood' },
+        { name: 'Flame', shape: 'cone', size: { x: 0.25, y: 0.4, z: 0.25 }, position: { x: 0, y: 0.35, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FF4500', metalness: 0, roughness: 0.5, emissive: '#FF4500', emissiveIntensity: 3 } },
+        { name: 'Glow', shape: 'sphere', size: { x: 0.6, y: 0.4, z: 0.6 }, position: { x: 0, y: 0.3, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#FF8C00', metalness: 0, roughness: 0.5, emissive: '#FF8C00', emissiveIntensity: 1.5, opacity: 0.15, transparent: true } },
+    ],
+    fire: () => OBJECT_TEMPLATES.campfire(),
+    bench: () => [
+        { name: 'Seat', shape: 'box', size: { x: 1.2, y: 0.05, z: 0.4 }, position: { x: 0, y: 0.42, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#8B4513', metalness: 0, roughness: 0.85 }, materialName: 'wood' },
+        { name: 'Leg L', shape: 'box', size: { x: 0.06, y: 0.4, z: 0.35 }, position: { x: -0.5, y: 0.2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#696969', metalness: 0.8, roughness: 0.3 }, materialName: 'metal' },
+        { name: 'Leg R', shape: 'box', size: { x: 0.06, y: 0.4, z: 0.35 }, position: { x: 0.5, y: 0.2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#696969', metalness: 0.8, roughness: 0.3 }, materialName: 'metal' },
+    ],
+    well: () => [
+        { name: 'Base', shape: 'cylinder', size: { x: 0.8, y: 0.6, z: 0.8 }, position: { x: 0, y: 0.3, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#808080', metalness: 0, roughness: 0.9 }, materialName: 'stone' },
+        { name: 'Water', shape: 'cylinder', size: { x: 0.6, y: 0.05, z: 0.6 }, position: { x: 0, y: 0.4, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#4682B4', metalness: 0, roughness: 0.05, opacity: 0.5, transparent: true } },
+        { name: 'Post L', shape: 'cylinder', size: { x: 0.05, y: 1.0, z: 0.05 }, position: { x: -0.35, y: 1.1, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#654321', metalness: 0, roughness: 0.9 }, materialName: 'wood' },
+        { name: 'Post R', shape: 'cylinder', size: { x: 0.05, y: 1.0, z: 0.05 }, position: { x: 0.35, y: 1.1, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#654321', metalness: 0, roughness: 0.9 }, materialName: 'wood' },
+        { name: 'Beam', shape: 'cylinder', size: { x: 0.04, y: 0.75, z: 0.04 }, position: { x: 0, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 90 }, material: { color: '#654321', metalness: 0, roughness: 0.9 }, materialName: 'wood' },
+        { name: 'Roof', shape: 'cone', size: { x: 0.9, y: 0.4, z: 0.9 }, position: { x: 0, y: 1.85, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, material: { color: '#A0522D', metalness: 0, roughness: 0.85 } },
+    ],
 }
 
 /**
@@ -274,9 +358,11 @@ export function parseDescriptionLocal(description: string): SceneGraph {
 
     // Find material modifiers
     let materialOverride: Partial<SceneGraphNode['material']> | null = null
+    let materialKeyword: string | null = null
     for (const [keyword, mat] of Object.entries(MATERIAL_MAP)) {
         if (lower.includes(keyword)) {
             materialOverride = mat
+            materialKeyword = keyword
             break
         }
     }
@@ -290,6 +376,7 @@ export function parseDescriptionLocal(description: string): SceneGraph {
             if (materialOverride) {
                 for (const node of nodes) {
                     node.material = { ...node.material, ...materialOverride }
+                    if (materialKeyword) node.materialName = materialKeyword
                 }
             }
             objects.push(...nodes)
@@ -363,8 +450,8 @@ function createGeometry(shape: PrimitiveShape, size: { x: number; y: number; z: 
     }
 }
 
-function createMaterial(mat: SceneGraphNode['material']): THREE.MeshStandardMaterial {
-    return new THREE.MeshStandardMaterial({
+function createMaterial(mat: SceneGraphNode['material'], materialName?: string): THREE.MeshStandardMaterial {
+    const props: THREE.MeshStandardMaterialParameters = {
         color: new THREE.Color(mat.color),
         metalness: mat.metalness,
         roughness: mat.roughness,
@@ -373,7 +460,20 @@ function createMaterial(mat: SceneGraphNode['material']): THREE.MeshStandardMate
         opacity: mat.opacity ?? 1,
         transparent: mat.transparent ?? false,
         side: THREE.DoubleSide,
-    })
+    }
+
+    // Apply procedural textures if a material keyword is available
+    const texPreset = materialName ? materialToTexturePreset(materialName) : null
+    if (texPreset) {
+        const texSet = generateProceduralTexture(texPreset, 256, mat.color)
+        if (texSet) {
+            props.map = texSet.diffuse
+            if (texSet.roughness) props.roughnessMap = texSet.roughness
+            if (texSet.normal) props.normalMap = texSet.normal
+        }
+    }
+
+    return new THREE.MeshStandardMaterial(props)
 }
 
 /**
@@ -393,7 +493,7 @@ export function buildSceneGroup(sceneGraph: SceneGraph): THREE.Group {
 
 function buildNodeMesh(node: SceneGraphNode): THREE.Mesh | THREE.Group {
     const geometry = createGeometry(node.shape, node.size)
-    const material = createMaterial(node.material)
+    const material = createMaterial(node.material, node.materialName)
     const mesh = new THREE.Mesh(geometry, material)
 
     mesh.name = node.name
