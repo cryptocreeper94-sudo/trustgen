@@ -9,7 +9,8 @@
  * - Lip Sync
  */
 import { useState } from 'react'
-import { AIGenerationPanel } from './AIPanel'
+import { TextTo3DStudio } from './TextTo3DStudio'
+import { LumeStudioPanel } from './LumeStudioPanel'
 import { InfoBubble } from './Tooltip'
 import { useStoryStore } from '../stores/storyStore'
 
@@ -26,6 +27,7 @@ interface AISubPanel {
 
 const AI_PANELS: AISubPanel[] = [
     { id: 'text-to-3d', label: 'Text to 3D', icon: '🧊', description: 'Generate 3D objects from text descriptions', image: '/images/cards/card-text-to-3d.png' },
+    { id: 'lume-to-3d', label: 'Lume Studio', icon: '⚡', description: 'Write Lume code → Generate 3D scenes', image: '/images/cards/card-text-to-3d.png' },
     { id: 'voice-over', label: 'Voice-Over', icon: '🎙️', description: 'AI narration with ElevenLabs & OpenAI', image: '/images/cards/card-voice-over.png' },
     { id: 'character', label: 'Characters', icon: '👤', description: 'Procedural character creator with presets', image: '/images/cards/card-character-creator.png' },
     { id: 'story-mode', label: 'Story Mode', icon: '📖', description: 'Paste text → animated documentary', image: '/images/cards/card-story-mode.png' },
@@ -278,16 +280,22 @@ function LipSyncPanel() {
 export function AIMegaPanel() {
     const [activePanel, setActivePanel] = useState('text-to-3d')
 
+    const handleGenerate = (type: string, config: any) => {
+        const event = new CustomEvent('trustgen:generate', { detail: { type, config } })
+        window.dispatchEvent(event)
+    }
+
     const renderSubPanel = () => {
         switch (activePanel) {
-            case 'text-to-3d': return <AIGenerationPanel />
+            case 'text-to-3d': return <TextTo3DStudio onGenerate={handleGenerate} />
+            case 'lume-to-3d': return <LumeStudioPanel />
             case 'voice-over': return <VoiceOverPanel />
             case 'character': return <CharacterPanel />
             case 'story-mode': return <StoryModePanel />
             case 'scene-director': return <SceneDirectorPanel />
             case 'auto-cut': return <AutoCutPanel />
             case 'lip-sync': return <LipSyncPanel />
-            default: return <AIGenerationPanel />
+            default: return <TextTo3DStudio onGenerate={handleGenerate} />
         }
     }
 

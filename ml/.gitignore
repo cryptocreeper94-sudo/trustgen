@@ -1,0 +1,12 @@
+# TrustGen ML Service
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+output/
+*.glb
+*.obj
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,25 @@
+# TrustGen ML Service — Dependencies
+# Install: pip install -r requirements.txt
+
+# Core server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# 3D processing
+trimesh==4.0.8
+numpy==1.26.3
+Pillow==10.2.0
+
+# Shap-E (OpenAI text-to-3D) — MIT License
+# Uncomment when ready to install:
+# shap-e @ git+https://github.com/openai/shap-e.git
+
+# TripoSR (Image-to-3D) — Apache 2.0
+# Uncomment when ready to install:
+# triposr @ git+https://github.com/VAST-AI-Research/TripoSR.git
+
+# PyTorch (required for all ML models)
+# Install separately based on your GPU:
+#   CPU:  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   CUDA: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
