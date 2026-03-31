@@ -69,8 +69,9 @@ const Select: React.FC<{
     </div>
 )
 
-// Photorealistic preset thumbnails
+// Photorealistic + Pixar-style preset thumbnails
 const PRESET_IMAGES: Record<string, string> = {
+    // Realistic characters
     warrior: '/presets/warrior.png',
     athlete: '/presets/athlete.png',
     casual: '/presets/casual.png',
@@ -79,15 +80,28 @@ const PRESET_IMAGES: Record<string, string> = {
     presenter: '/presets/business.png',
     scientist: '/presets/sci-fi.png',
     child: '/presets/casual.png',
+    // Pixar-style characters
+    'pixar-hero': '/presets/pixar-hero.png',
+    'pixar-girl': '/presets/pixar-girl.png',
+    'pixar-robot': '/presets/pixar-robot.png',
+    'pixar-villain': '/presets/pixar-villain.png',
+    'pixar-fox': '/presets/pixar-fox.png',
+    hero: '/presets/pixar-hero.png',
+    adventurer: '/presets/pixar-girl.png',
+    robot: '/presets/pixar-robot.png',
+    villain: '/presets/pixar-villain.png',
+    // Creatures
     wolf: '/presets/wolf.png',
     dog: '/presets/wolf.png',
     cat: '/presets/wolf.png',
     horse: '/presets/wolf.png',
     bear: '/presets/wolf.png',
+    fox: '/presets/pixar-fox.png',
     eagle: '/presets/eagle.png',
     parrot: '/presets/eagle.png',
     dragon: '/presets/dragon.png',
     butterfly: '/presets/eagle.png',
+    // Nature
     oak: '/presets/oak-tree.png',
     pine: '/presets/oak-tree.png',
     palm: '/presets/oak-tree.png',
