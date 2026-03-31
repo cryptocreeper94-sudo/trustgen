@@ -21,10 +21,8 @@ import {
 import { directScene, summarizeComposition, type SceneComposition } from '../engine/SceneDirector'
 import {
     generateVoiceOver,
-    autoAssignVoices,
     DEFAULT_VOICE_CONFIG,
     type VoiceOverResult,
-    type VoiceConfig,
 } from '../engine/VoiceOver'
 import {
     createShot,
