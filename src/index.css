@@ -3836,7 +3836,7 @@ input[type="text"].ai-input:focus {
 /* Dot navigation */
 .hero-carousel-dots {
   position: absolute;
-  bottom: 28px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 30;
@@ -4123,9 +4123,9 @@ input[type="text"].ai-input:focus {
   }
 
   .footer-badges {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 10px; padding: 0 16px; justify-content: flex-start;
   }
+  .footer-badges::-webkit-scrollbar { display: none; } .footer-badge { flex-shrink: 0; font-size: 11px; padding: 6px 14px; }
 
   .footer-bottom {
     flex-direction: column;

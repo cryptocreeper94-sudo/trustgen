@@ -1,7 +1,7 @@
 /* ====== TrustGen — API Client ====== */
 /* Centralized fetch wrapper with auth token + tenant ID injection */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_BASE = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:4000' : '')
 
 export class ApiError extends Error {
     status: number

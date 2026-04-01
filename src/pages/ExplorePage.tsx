@@ -205,7 +205,7 @@ function StatsTicker() {
                 </div>
                 <div className="stat-divider" />
                 <div className="stat-item">
-                    <span className="stat-number gradient-text">140+</span>
+                    <span className="stat-number gradient-text">114</span>
                     <span className="stat-label">English Patterns</span>
                 </div>
                 <div className="stat-divider" />
