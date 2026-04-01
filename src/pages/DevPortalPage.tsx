@@ -247,7 +247,7 @@ export function DevPortalPage() {
                         </div>
 
                         {/* Quick links */}
-                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'nowrap', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', paddingBottom: 8 }}>
                             <a href="https://dashboard.render.com" target="_blank" rel="noopener noreferrer" className="btn btn-sm">
                                 🖥️ Render Dashboard
                             </a>
