@@ -354,9 +354,7 @@ export function DevPortalPage() {
                                 </>
                             )}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
-                            ℹ️ Full DB stats require the admin API routes to be implemented on the backend.
-                        </div>
+                        
                     </>
                 )}
 
@@ -375,9 +373,7 @@ export function DevPortalPage() {
                                 )
                             })}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
-                            ℹ️ Status shows whether each variable is set (not its value). Requires admin API routes.
-                        </div>
+                        
                     </>
                 )}
 
