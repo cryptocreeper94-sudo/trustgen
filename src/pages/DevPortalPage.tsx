@@ -242,7 +242,7 @@ export function DevPortalPage() {
                             <div className="health-card">
                                 <div className="health-card-label">Frontend</div>
                                 <div className="health-card-value ok">● LIVE</div>
-                                <div className="health-card-sub">Vercel (trustgen.tlid.io)</div>
+                                <div className="health-card-sub">Render (trustgen.tlid.io)</div>
                             </div>
                         </div>
 
@@ -292,7 +292,7 @@ export function DevPortalPage() {
                             </div>
                         )}
 
-                        <table className="api-table">
+                        <div className="api-table-wrap"><table className="api-table">
                             <thead>
                                 <tr>
                                     <th>Method</th>
@@ -325,7 +325,7 @@ export function DevPortalPage() {
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
+                        </table></div>
                     </>
                 )}
 
@@ -412,7 +412,7 @@ export function DevPortalPage() {
 
                         <div style={{ marginTop: 24 }}>
                             <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Integration Endpoints</h3>
-                            <table className="api-table">
+                            <div className="api-table-wrap"><table className="api-table">
                                 <thead>
                                     <tr><th>Feature</th><th>Status</th><th>Endpoint</th></tr>
                                 </thead>
