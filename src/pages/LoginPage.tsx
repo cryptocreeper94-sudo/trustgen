@@ -261,8 +261,8 @@ export function LoginPage() {
                         type="button"
                         className="auth-sso-btn"
                         onClick={() => {
-                            const redirectUrl = encodeURIComponent(window.location.origin + '/api/auth/sso-callback')
-                            window.location.href = `https://dwtl.io/hub/sso?app=trustgen&redirect=${redirectUrl}`
+                            const returnUrl = encodeURIComponent(window.location.origin + '/dashboard')
+                            window.location.href = `https://dwtl.io/welcome?app=trustgen&returnTo=${returnUrl}`
                         }}
                     >
                         <span className="auth-sso-icon">◈</span>
