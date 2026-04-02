@@ -205,7 +205,7 @@ function StatsTicker() {
                 </div>
                 <div className="stat-divider" />
                 <div className="stat-item">
-                    <span className="stat-number gradient-text">114</span>
+                    <span className="stat-number gradient-text">154</span>
                     <span className="stat-label">English Patterns</span>
                 </div>
                 <div className="stat-divider" />
@@ -320,7 +320,7 @@ export function ExplorePage() {
                         <span className="hero-line-2 gradient-text">Intent.</span>
                     </h1>
                     <p className="hero-carousel-sub">
-                        The AI-powered 3D studio with a built-in Lume IDE.
+                        The deterministic 3D studio with a built-in Lume IDE.
                         Speak your vision. Watch it compile.
                     </p>
                     <div className="hero-carousel-label" key={activeLabel.label}>
