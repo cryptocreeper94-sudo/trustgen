@@ -43,7 +43,7 @@ function ini(n:string):string{return n.split(' ').map(w=>w[0]).join('').toUpperC
 const isMobile = typeof window !== 'undefined' && window.innerWidth <= 640;
 
 const S: Record<string, CSSProperties> = {
-  trigger:{position:'fixed',top:14,right:16,zIndex:9998,width:38,height:38,borderRadius:'50%',border:'2px solid rgba(6,182,212,0.35)',background:'linear-gradient(135deg,rgba(8,10,18,0.9),rgba(8,10,18,0.9))',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,color:'rgba(255,255,255,0.85)',boxShadow:'0 4px 20px rgba(0,0,0,0.4)',padding:0,outline:'none'},
+  trigger:{position:'fixed',top:60,right:16,zIndex:9998,width:38,height:38,borderRadius:'50%',border:'2px solid rgba(6,182,212,0.35)',background:'linear-gradient(135deg,rgba(8,10,18,0.9),rgba(8,10,18,0.9))',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,color:'rgba(255,255,255,0.85)',boxShadow:'0 4px 20px rgba(0,0,0,0.4)',padding:0,outline:'none'},
   backdrop:{position:'fixed',inset:0,zIndex:9998,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)'},
   panel:{position:'fixed',top:0,right:0,zIndex:9999,width:isMobile?'100vw':360,maxWidth:'100vw',height:'100dvh',background:'linear-gradient(180deg,rgba(8,10,18,0.98),rgba(4,6,12,0.99))',borderLeft:isMobile?'none':'1px solid rgba(6,182,212,0.1)',backdropFilter:'blur(60px)',WebkitBackdropFilter:'blur(60px)',overflowY:'auto' as const,display:'flex',flexDirection:'column' as const,overscrollBehavior:'contain'},
   drag:{display:isMobile?'flex':'none',justifyContent:'center',padding:'10px 0 4px'},

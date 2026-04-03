@@ -205,7 +205,7 @@ function StatsTicker() {
                 </div>
                 <div className="stat-divider" />
                 <div className="stat-item">
-                    <span className="stat-number gradient-text">154</span>
+                    <span className="stat-number gradient-text">160+</span>
                     <span className="stat-label">English Patterns</span>
                 </div>
                 <div className="stat-divider" />
@@ -348,17 +348,7 @@ export function ExplorePage() {
                     </div>
                 </div>
 
-                {/* Dot navigation */}
-                <div className="hero-carousel-dots">
-                    {HERO_SLIDES.map((slide, idx) => (
-                        <button
-                            key={idx}
-                            className={`hero-dot ${idx === (nextSlide ?? currentSlide) ? 'active' : ''}`}
-                            onClick={() => goToSlide(idx)}
-                            title={slide.label}
-                        />
-                    ))}
-                </div>
+
             </section>
 
             {/* ═══ Stats Ticker ═══ */}
