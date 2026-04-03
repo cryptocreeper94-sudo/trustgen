@@ -18,10 +18,11 @@ const FEATURES = [
     {
         image: '/features/lume_ide.jpg',
         category: 'Lume IDE',
-        title: 'Built-In Lume IDE',
-        description: 'Write Lume code directly in TrustGen with full Monaco editor integration, syntax highlighting, and Lume language support. Compile English Mode to 3D scenes with the Tolerance Chain.',
+        title: 'Intent-Resolving 3D IDE',
+        description: 'Write Lume code or speak plain English. The 7-layer Tolerance Chain resolves your intent directly to 3D engine API calls — no scripting syntax, no translation burden.',
         path: '/editor',
         cta: 'Open IDE',
+        accent: 'violet',
     },
     {
         image: '/features/studio_creation.jpg',
@@ -30,6 +31,7 @@ const FEATURES = [
         description: 'Build stunning 3D scenes with primitives, materials, lighting, and real-time preview. Professional-grade tools in your browser.',
         path: '/editor',
         cta: 'Open Studio',
+        accent: 'amber',
     },
     {
         image: '/features/ai_generation.jpg',
@@ -38,6 +40,7 @@ const FEATURES = [
         description: 'Generate characters, creatures, trees, flowers, rocks, and more with our in-house procedural engine. 44 presets, infinite customization, zero external dependencies.',
         path: '/editor',
         cta: 'Try AI Gen',
+        accent: 'emerald',
     },
     {
         image: '/features/animation_curve.jpg',
@@ -46,38 +49,25 @@ const FEATURES = [
         description: 'Keyframe animation system with easing curves, playback controls, and real-time preview. Animate position, rotation, scale, and materials.',
         path: '/editor',
         cta: 'Animate',
+        accent: 'red',
     },
     {
         image: '/features/voice_profiles.jpg',
-        category: 'Voice',
-        title: 'Adaptive Voice Profiles',
-        description: 'Speak your 3D commands naturally. TrustGen learns your dialect, accent, and filler words — the IDE adapts to you, not the other way around.',
+        category: 'Voice & FX',
+        title: 'Voice Commands & Effects',
+        description: 'Speak your 3D commands naturally with adaptive voice profiles. Plus bloom, SSAO, depth of field, chromatic aberration, and cinematic color grading.',
         path: '/editor',
         cta: 'Try Voice',
-    },
-    {
-        image: '/features/post_processing.jpg',
-        category: 'Effects',
-        title: 'Post-Processing & FX',
-        description: 'Bloom, SSAO, depth of field, chromatic aberration, film grain, and color grading. Cinematic quality rendering in real-time.',
-        path: '/editor',
-        cta: 'Add Effects',
-    },
-    {
-        image: '/features/model_export.jpg',
-        category: 'Export',
-        title: 'Model Import & Export',
-        description: 'Import GLTF/GLB models, export your scenes in multiple formats. Full pipeline from creation to production-ready assets.',
-        path: '/editor',
-        cta: 'Import/Export',
+        accent: 'blue',
     },
     {
         image: '/features/trust_layer.jpg',
-        category: 'Trust Layer',
-        title: 'Ecosystem Integration',
-        description: 'Part of the Trust Layer ecosystem. SSO authentication, verified provenance, and seamless connection to 36 ecosystem apps.',
+        category: 'Ecosystem',
+        title: 'Trust Layer Integration',
+        description: 'Part of the Trust Layer ecosystem. SSO authentication, verified provenance, model import/export, and seamless connection to 36 ecosystem apps.',
         path: '/dashboard',
         cta: 'Learn More',
+        accent: 'teal',
     },
 ]
 
@@ -101,96 +91,6 @@ function FloatingParticles() {
                 />
             ))}
         </div>
-    )
-}
-
-// ── Lume IDE Showcase Section ──
-function LumeIDEShowcase() {
-    const navigate = useNavigate()
-    const [typedCode, setTypedCode] = useState('')
-    const fullCode = `mode: english
-
-create a metallic sphere
-place it at the center
-add a cyan point light above it
-rotate the sphere slowly
-show me the scene`
-
-    useEffect(() => {
-        let i = 0
-        const interval = setInterval(() => {
-            if (i <= fullCode.length) {
-                setTypedCode(fullCode.slice(0, i))
-                i++
-            } else {
-                clearInterval(interval)
-            }
-        }, 35)
-        return () => clearInterval(interval)
-    }, [])
-
-    return (
-        <section className="lume-ide-showcase">
-            <div className="lume-ide-label">◈ Powered by Lume</div>
-            <h2 className="lume-ide-title">
-                The First <span className="gradient-text">Intent-Resolving</span> 3D IDE
-            </h2>
-            <p className="lume-ide-subtitle">
-                Speak or type natural English. The Lume Tolerance Chain resolves your intent
-                directly to 3D engine API calls. No scripting syntax. No translation burden.
-                Just describe what you want.
-            </p>
-
-            <div className="lume-ide-demo">
-                {/* Code panel */}
-                <div className="ide-code-panel">
-                    <div className="ide-tab-bar">
-                        <div className="ide-tab active">scene.lume</div>
-                        <div className="ide-tab">materials.lume</div>
-                    </div>
-                    <pre className="ide-code">
-                        <code>
-                            {typedCode}
-                            <span className="cursor-blink">|</span>
-                        </code>
-                    </pre>
-                    <div className="ide-status-bar">
-                        <span>✦ Lume v1.0.0</span>
-                        <span>Tolerance Chain: 7 layers</span>
-                        <span className="ide-status-ready">● Ready</span>
-                    </div>
-                </div>
-
-                {/* Output panel */}
-                <div className="ide-output-panel">
-                    <div className="ide-tab-bar">
-                        <div className="ide-tab active">3D Preview</div>
-                    </div>
-                    <div className="ide-3d-preview">
-                        <div className="preview-sphere" />
-                        <div className="preview-light" />
-                        <div className="preview-grid" />
-                    </div>
-                    <div className="ide-status-bar">
-                        <span>WebGL2</span>
-                        <span>Objects: 3</span>
-                        <span className="ide-status-ready">● Compiled</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="lume-ide-cta-row">
-                <button className="lume-cta-primary" onClick={() => navigate('/editor')}>
-                    ◈ Try the IDE Free →
-                </button>
-                <a className="lume-cta-secondary" href="https://dwsc.io#papers" target="_blank" rel="noopener">
-                    📄 Read the Research
-                </a>
-                <a className="lume-cta-secondary" href="https://dwsc.io" target="_blank" rel="noopener">
-                    🔬 DWSC.io
-                </a>
-            </div>
-        </section>
     )
 }
 
@@ -240,7 +140,6 @@ export function ExplorePage() {
 
     const scrollFeatureCarousel = (direction: 'left' | 'right') => {
         if (carouselRef.current) {
-            // Precise card width + 24px gap. Mobile is 280+24. Desktop is 600+24.
             const cardWidth = window.innerWidth > 768 ? 624 : 304; 
             carouselRef.current.scrollBy({ left: direction === 'left' ? -cardWidth : cardWidth, behavior: 'smooth' })
         }
@@ -336,26 +235,15 @@ export function ExplorePage() {
                         >
                             Try the Studio Free →
                         </button>
-                        <button
-                            className="explore-hero-cta-secondary"
-                            onClick={() => {
-                                const el = document.querySelector('.lume-ide-showcase')
-                                el?.scrollIntoView({ behavior: 'smooth' })
-                            }}
-                        >
-                            See the Lume IDE ↓
-                        </button>
+                        <a className="explore-hero-cta-secondary" href="https://dwsc.io#papers" target="_blank" rel="noopener">
+                            Read the Research
+                        </a>
                     </div>
                 </div>
-
-
             </section>
 
             {/* ═══ Stats Ticker ═══ */}
             <StatsTicker />
-
-            {/* ═══ Lume IDE Showcase ═══ */}
-            <LumeIDEShowcase />
 
             {/* ═══ Features ═══ */}
             <section className="explore-features">
@@ -377,7 +265,7 @@ export function ExplorePage() {
                                 style={{ backgroundImage: `url(${feature.image})` }}
                                 onClick={() => navigate(feature.path)}
                             >
-                                {/* Void Glass overlay to ground the text perfectly into the image */}
+                                {/* Void Glass overlay */}
                                 <div className="feature-card-cinematic-glass">
                                     <div className="feature-card-category">{feature.category}</div>
                                     <h3>{feature.title}</h3>
