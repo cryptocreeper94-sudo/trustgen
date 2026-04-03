@@ -1,4 +1,4 @@
-﻿/* ====== TrustGen — Developer Portal ====== */
+/* ====== TrustGen — Developer Portal ====== */
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Footer } from '../components/Footer'
@@ -451,6 +451,7 @@ export function DevPortalPage() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
                     </>
                 )}
             </div>
