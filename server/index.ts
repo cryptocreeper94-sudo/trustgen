@@ -990,7 +990,7 @@ app.post('/api/billing/create-checkout', authMiddleware, async (req: any, res) =
             line_items: [{ price: priceIds[tier], quantity: 1 }],
             success_url: `${CLIENT_URL}/dashboard?checkout=success`,
             cancel_url: `${CLIENT_URL}/billing?checkout=cancel`,
-            metadata: { userId: user.id, tier },
+            metadata: { userId: user.id, tier, target_app: 'trustgen' },
         })
 
         res.json({ url: session.url })
@@ -1082,6 +1082,58 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
     } catch (err: any) {
         console.error('Webhook error:', err)
         res.status(400).json({ error: 'Webhook failed' })
+    }
+})
+
+// ════════════════════════════════
+//  STRIPE FEDERAL RELAY RECEIVER
+//  Receives pre-verified events from the Trust Layer federal webhook
+//  No signature verification needed — protected by relay secret
+// ════════════════════════════════
+app.post('/api/webhooks/stripe-relay', express.json(), async (req, res) => {
+    const relaySecret = req.headers['x-relay-secret']
+    if (relaySecret !== (process.env.ECOSYSTEM_RELAY_SECRET || 'tl-relay-2026')) {
+        return res.status(403).json({ error: 'Invalid relay secret' })
+    }
+    const event = req.body
+    console.log(`[Stripe Relay] Received ${event.type} from federal webhook`)
+    try {
+        switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object
+                const userId = session.metadata?.userId
+                const tier = session.metadata?.tier
+                if (userId && tier) {
+                    await pool.query('UPDATE users SET subscription_tier = $1 WHERE id = $2', [tier, userId])
+                    await pool.query(
+                        `INSERT INTO subscriptions (user_id, stripe_subscription_id, stripe_customer_id, tier, status)
+                         VALUES ($1, $2, $3, $4, 'active') ON CONFLICT DO NOTHING`,
+                        [userId, session.subscription, session.customer, tier]
+                    )
+                    console.log(`[Stripe Relay] Subscription activated: user=${userId}, tier=${tier}`)
+                }
+                break
+            }
+            case 'customer.subscription.deleted': {
+                const sub = event.data.object
+                await pool.query(
+                    "UPDATE subscriptions SET status = 'canceled' WHERE stripe_subscription_id = $1",
+                    [sub.id]
+                )
+                const subResult = await pool.query(
+                    'SELECT user_id FROM subscriptions WHERE stripe_subscription_id = $1',
+                    [sub.id]
+                )
+                if (subResult.rows[0]) {
+                    await pool.query("UPDATE users SET subscription_tier = 'free' WHERE id = $1", [subResult.rows[0].user_id])
+                }
+                break
+            }
+        }
+        res.json({ received: true })
+    } catch (err: any) {
+        console.error('[Stripe Relay] Error:', err)
+        res.status(500).json({ error: 'Relay processing failed' })
     }
 })
 
