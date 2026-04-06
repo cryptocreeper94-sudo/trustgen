@@ -5881,7 +5881,221 @@ input[type="text"].ai-input:focus {
 
 .ai-story-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+/* ── Story Playback Controls ── */
+.ai-story-playback-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-play-btn {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2)) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #6ee7b7 !important;
+}
+
+.ai-pause-btn {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(6, 182, 212, 0.2)) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  color: #c4b5fd !important;
+}
+
+.ai-stop-btn {
+  min-width: 80px;
+}
+
+.ai-export-btn {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(168, 85, 247, 0.15)) !important;
+  border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+.ai-story-export-status {
+  font-size: 11px;
+  color: rgba(6, 182, 212, 0.8);
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* ── Playback Progress Bar ── */
+.ai-story-playback-bar {
+  position: relative;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.ai-story-playback-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+  transition: width 0.15s linear;
+  border-radius: 4px;
+}
+
+.ai-story-playback-time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Active Shot Highlight ── */
+.ai-story-shot.active {
+  background: rgba(6, 182, 212, 0.12);
+  border-left: 2px solid #06b6d4;
+}
+
+.ai-story-shot.active .ai-story-shot-idx {
+  color: #06b6d4;
+}
+
+.ai-story-shot.active .ai-story-shot-name {
+  color: #fff;
+}
+
+/* ═══ Story Overlay (fullscreen on canvas) ═══ */
+.story-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Title Card */
+.story-overlay-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  animation: storyFadeIn 1.5s ease-out;
+}
+
+.story-overlay-title-text {
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  letter-spacing: -0.02em;
+}
+
+.story-overlay-title-sub {
+  font-size: clamp(12px, 1.5vw, 18px);
+  color: rgba(6, 182, 212, 0.8);
+  margin-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* Credits */
+.story-overlay-credits {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  animation: storyFadeIn 2s ease-out;
+}
+
+.story-overlay-credits-line {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.story-overlay-credits-line.dim {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+/* Narration Captions (lower third) */
+.story-overlay-caption {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80%;
+  text-align: center;
+  animation: storyFadeIn 0.6s ease-out;
+}
+
+.story-overlay-caption-text {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: clamp(13px, 1.4vw, 18px);
+  line-height: 1.6;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* Shot Counter */
+.story-overlay-counter {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  color: rgba(6, 182, 212, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Title Watermark */
+.story-overlay-watermark {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Timeline Progress */
+.story-overlay-timeline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.story-overlay-timeline-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+  transition: width 0.15s linear;
+}
+
+@keyframes storyFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ═══ Publish Tab ═══ */

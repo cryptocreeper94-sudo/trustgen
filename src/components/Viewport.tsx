@@ -7,10 +7,13 @@ import {
 } from '@react-three/drei'
 import * as THREE from 'three'
 import { useEngineStore } from '../store'
+import { useStoryStore } from '../stores/storyStore'
 import { SceneNode3D } from './SceneNode3D'
 import { PostProcessingPipeline } from './PostProcessing'
 import { EnvironmentSetup } from './EnvironmentSetup'
 import { AnimationEngine } from '../engine/AnimationEngine'
+import { StoryPlayback } from '../engine/StoryPlayback'
+import { StoryOverlay } from './StoryOverlay'
 import { ModelImporter } from './ModelImporter'
 import AutoRigger from './AutoRigger'
 
@@ -127,6 +130,7 @@ export function Viewport() {
     const autoRotateSpeed = useEngineStore(s => s.camera.autoRotateSpeed)
     const showStats = useEngineStore(s => s.editor.showStats)
     const postProcessing = useEngineStore(s => s.postProcessing)
+    const storyPlaying = useStoryStore(s => s.playback.playing)
 
     return (
         <>
@@ -137,6 +141,7 @@ export function Viewport() {
                     powerPreference: 'high-performance',
                     stencil: false,
                     depth: true,
+                    preserveDrawingBuffer: true, // Required for video export
                 }}
                 shadows
                 dpr={[1, 2]}
@@ -156,19 +161,22 @@ export function Viewport() {
 
                 <OrbitControls
                     makeDefault
-                    autoRotate={autoRotate}
+                    autoRotate={autoRotate && !storyPlaying}
                     autoRotateSpeed={autoRotateSpeed}
-                    enableDamping
+                    enableDamping={!storyPlaying}
                     dampingFactor={0.05}
                     minDistance={1}
                     maxDistance={100}
+                    enabled={!storyPlaying}
                 />
 
                 {showStats && <Stats />}
 
                 <AnimationEngine />
+                <StoryPlayback />
                 <PostProcessingPipeline settings={postProcessing} />
             </Canvas>
+            <StoryOverlay />
             <ModelImporter />
         </>
     )

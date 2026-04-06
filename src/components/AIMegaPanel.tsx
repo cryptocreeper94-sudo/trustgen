@@ -106,13 +106,45 @@ function CharacterPanel() {
 
 function StoryModePanel() {
     const {
-        text, style, title, status, progress, error, summary, shots,
-        setText, setStyle, setTitle, generateDocumentary, reset,
+        text, style, title, status, progress, error, summary, shots, playback,
+        setText, setStyle, setTitle, generateDocumentary,
+        startPlayback, pausePlayback, stopPlayback,
+        reset,
     } = useStoryStore()
+
+    const [exportStatus, setExportStatus] = useState<string | null>(null)
 
     const STYLES = ['documentary', 'explainer', 'dramatic', 'educational', 'cinematic'] as const
     const wordCount = text.split(/\s+/).filter(Boolean).length
     const isGenerating = status !== 'idle' && status !== 'ready' && status !== 'done' && status !== 'error'
+
+    const handleExportVideo = async () => {
+        const canvas = document.querySelector('canvas') as HTMLCanvasElement
+        if (!canvas) { setExportStatus('No canvas found'); return }
+
+        const { VideoExporter } = await import('../engine/VideoExporter')
+        const exporter = new VideoExporter()
+
+        setExportStatus('Starting...')
+        startPlayback()
+
+        try {
+            const url = await exporter.start(canvas, playback.totalDuration || 30, (p) => {
+                setExportStatus(p.label)
+            })
+            VideoExporter.download(url, `${title || 'documentary'}-${Date.now()}.webm`)
+            setExportStatus('Download started!')
+            setTimeout(() => setExportStatus(null), 3000)
+        } catch (err: any) {
+            setExportStatus(`Error: ${err.message}`)
+        }
+    }
+
+    const formatTime = (t: number) => {
+        const m = Math.floor(t / 60)
+        const s = Math.floor(t % 60)
+        return `${m}:${s.toString().padStart(2, '0')}`
+    }
 
     return (
         <div className="ai-sub-content">
@@ -120,16 +152,59 @@ function StoryModePanel() {
                 /* ── Results View ── */
                 <div className="ai-story-results">
                     <div className="ai-story-summary">{summary}</div>
+
+                    {/* Playback Controls */}
+                    <div className="ai-story-playback-controls">
+                        {!playback.playing ? (
+                            <button className="ai-generate-btn ai-play-btn" onClick={startPlayback}>
+                                ▶ Preview
+                            </button>
+                        ) : (
+                            <button className="ai-generate-btn ai-pause-btn" onClick={pausePlayback}>
+                                ⏸ Pause
+                            </button>
+                        )}
+                        <button
+                            className="ai-generate-btn ai-stop-btn"
+                            onClick={stopPlayback}
+                            disabled={!playback.playing && playback.currentTime === 0}
+                        >
+                            ⏹ Stop
+                        </button>
+                    </div>
+
+                    {/* Playback Progress */}
+                    {(playback.playing || playback.currentTime > 0) && (
+                        <div className="ai-story-playback-bar">
+                            <div className="ai-story-playback-bar-fill" style={{
+                                width: `${playback.totalDuration > 0 ? (playback.currentTime / playback.totalDuration) * 100 : 0}%`
+                            }} />
+                            <span className="ai-story-playback-time">
+                                {formatTime(playback.currentTime)} / {formatTime(playback.totalDuration)}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Shot List */}
                     <div className="ai-story-shots">
                         {shots.map((s, i) => (
-                            <div key={s.id} className="ai-story-shot">
+                            <div
+                                key={s.id}
+                                className={`ai-story-shot ${i === playback.activeShotIndex && playback.playing ? 'active' : ''}`}
+                            >
                                 <span className="ai-story-shot-idx">{i + 1}</span>
                                 <span className="ai-story-shot-name">{s.name}</span>
                                 <span className="ai-story-shot-dur">{Math.ceil(s.duration)}s</span>
                             </div>
                         ))}
                     </div>
+
+                    {/* Export */}
                     <div className="ai-story-actions">
+                        <button className="ai-generate-btn ai-export-btn" onClick={handleExportVideo} disabled={playback.playing}>
+                            📹 Export Video
+                        </button>
+                        {exportStatus && <div className="ai-story-export-status">{exportStatus}</div>}
                         <button className="ai-generate-btn" onClick={reset}>
                             ↩ New Documentary
                         </button>

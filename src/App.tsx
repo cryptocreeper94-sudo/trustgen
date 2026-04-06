@@ -142,7 +142,6 @@ export default function App() {
     <BrowserRouter>
       <CustomCursor />
       <AmbientOrbs />
-      <PresaleBanner />
       <EcosystemAccountHub />
       <Routes>
         {/* Public routes */}

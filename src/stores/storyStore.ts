@@ -28,8 +28,10 @@ import {
     createShot,
     generateCameraPreset,
     computeTotalDuration,
+    getShotAtTime,
+    selectCinematicMove,
     type Shot,
-    type CameraMoveType,
+    type TransitionType,
 } from '../engine/Sequencer'
 import {
     checkConnection,
@@ -59,6 +61,13 @@ export interface StoryProgress {
     label: string
 }
 
+export interface PlaybackState {
+    playing: boolean
+    currentTime: number
+    activeShotIndex: number
+    totalDuration: number
+}
+
 interface StoryState {
     // ── User Inputs ──
     text: string
@@ -78,6 +87,9 @@ interface StoryState {
     shots: Shot[]
     summary: string | null
 
+    // ── Playback ──
+    playback: PlaybackState
+
     // ── TrustBook ──
     trustBookConnection: TrustBookConnection | null
     importResult: ImportResult | null
@@ -90,21 +102,14 @@ interface StoryState {
     generateDocumentary: () => Promise<void>
     importFromTrustBook: (ebookId: string) => Promise<void>
     checkTrustBookConnection: () => Promise<void>
+    startPlayback: () => void
+    pausePlayback: () => void
+    stopPlayback: () => void
+    setPlaybackTime: (time: number) => void
+    setActiveShotIndex: (idx: number) => void
     reset: () => void
 }
 
-// ── Helper: map SceneDirector camera movement to Sequencer CameraMoveType ──
-function mapCameraMovement(movement: string): CameraMoveType {
-    const map: Record<string, CameraMoveType> = {
-        static: 'static',
-        pan: 'pan',
-        orbit: 'orbit',
-        dolly: 'dolly',
-        crane: 'crane',
-        follow: 'follow',
-    }
-    return map[movement] || 'static'
-}
 
 export const useStoryStore = create<StoryState>((set, get) => ({
     // ── Defaults ──
@@ -122,6 +127,8 @@ export const useStoryStore = create<StoryState>((set, get) => ({
     voiceOvers: [],
     shots: [],
     summary: null,
+
+    playback: { playing: false, currentTime: 0, activeShotIndex: 0, totalDuration: 0 },
 
     trustBookConnection: null,
     importResult: null,
@@ -253,25 +260,37 @@ export const useStoryStore = create<StoryState>((set, get) => ({
                 }))
             }
 
-            // Scene shots
+            // Scene shots — use selectCinematicMove for varied camera work
             for (let i = 0; i < compositions.length; i++) {
                 const comp = compositions[i]
                 const vo = voiceOvers[i]
                 const sceneData = timeline.scenes[i]
-                const movement = mapCameraMovement(comp.camera.movement)
                 const duration = vo?.duration || sceneData.duration
+
+                // Intelligent camera selection based on scene mood + index
+                const movement = selectCinematicMove(i, comp.lighting.mood)
+
+                // Varied look-at position based on character positions
+                const hasChars = comp.characters.length > 0
+                const lookAt = hasChars
+                    ? { x: comp.characters[0].position.x || 0, y: 1.2, z: comp.characters[0].position.z || 0 }
+                    : { x: 0, y: 0.8, z: 0 }
+
+                // Varied transitions
+                const transitions: TransitionType[] = ['cut', 'crossfade', 'fade-black', 'zoom-in', 'crossfade']
+                const transitionIn = transitions[i % transitions.length]
 
                 shots.push(createShot({
                     name: `Scene ${i + 1}${sceneData.overlay ? ` — ${sceneData.overlay}` : ''}`,
                     duration,
                     cameraMove: movement,
-                    cameraKeyframes: generateCameraPreset(movement, duration, comp.camera.lookAt),
-                    transitionIn: i === 0 ? 'crossfade' : (i % 3 === 0 ? 'crossfade' : 'cut'),
-                    transitionDuration: 0.5,
+                    cameraKeyframes: generateCameraPreset(movement, duration, lookAt),
+                    transitionIn,
+                    transitionDuration: transitionIn === 'fade-black' ? 1.0 : 0.5,
                 }))
             }
 
-            // Credits
+            // Credits — dramatic crane up
             if (config.showCredits) {
                 shots.push(createShot({
                     name: '📜 Credits',
@@ -349,6 +368,22 @@ export const useStoryStore = create<StoryState>((set, get) => ({
         }
     },
 
+    // ── Playback Controls ──
+    startPlayback: () => {
+        const { shots } = get()
+        if (!shots.length) return
+        const totalDuration = computeTotalDuration(shots)
+        set({ playback: { playing: true, currentTime: 0, activeShotIndex: 0, totalDuration } })
+    },
+    pausePlayback: () => set(s => ({ playback: { ...s.playback, playing: false } })),
+    stopPlayback: () => set(s => ({ playback: { ...s.playback, playing: false, currentTime: 0, activeShotIndex: 0 } })),
+    setPlaybackTime: (time: number) => {
+        const { shots } = get()
+        const { shotIndex } = getShotAtTime(shots, time)
+        set(s => ({ playback: { ...s.playback, currentTime: time, activeShotIndex: shotIndex } }))
+    },
+    setActiveShotIndex: (idx: number) => set(s => ({ playback: { ...s.playback, activeShotIndex: idx } })),
+
     // ── Reset ──
     reset: () => set({
         text: '',
@@ -363,6 +398,7 @@ export const useStoryStore = create<StoryState>((set, get) => ({
         voiceOvers: [],
         shots: [],
         summary: null,
+        playback: { playing: false, currentTime: 0, activeShotIndex: 0, totalDuration: 0 },
         importResult: null,
     }),
 }))

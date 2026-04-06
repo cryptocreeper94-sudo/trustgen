@@ -3,7 +3,7 @@
  *
  * - Multiple shots with independent cameras and durations
  * - Shot transitions (cut, crossfade, wipe, zoom, fade)
- * - Camera presets (pan, orbit, dolly, crane, follow, shake)
+ * - Cinematic camera presets with varied angles and movements
  * - Master timeline plays shots in sequence
  */
 
@@ -99,24 +99,165 @@ export function interpolateCamera(shot: Shot, localTime: number): CameraKeyframe
     for (let i = 0; i < kfs.length - 1; i++) {
         if (localTime >= kfs[i].time && localTime <= kfs[i + 1].time) {
             const t = (localTime - kfs[i].time) / (kfs[i + 1].time - kfs[i].time)
-            const s = t * t * (3 - 2 * t)
+            const s = t * t * (3 - 2 * t) // smoothstep
             return { time: localTime, position: lerpV3(kfs[i].position, kfs[i + 1].position, s), lookAt: lerpV3(kfs[i].lookAt, kfs[i + 1].lookAt, s), fov: kfs[i].fov + (kfs[i + 1].fov - kfs[i].fov) * s }
         }
     }
     return kfs[kfs.length - 1]
 }
 
+// ═══════════════════════════════════════════════════
+//  CINEMATIC CAMERA PRESETS
+//  Varied angles, heights, FOV changes, and movements
+// ═══════════════════════════════════════════════════
+
+/** Shot variety counter — ensures each scene gets a unique camera angle */
+let varietyIndex = 0
+
 export function generateCameraPreset(type: CameraMoveType, dur: number, center = { x: 0, y: 1, z: 0 }): CameraKeyframe[] {
+    varietyIndex++
+    const v = varietyIndex % 8 // 8 varieties per type
+
     switch (type) {
-        case 'static': return [{ time: 0, position: { x: 5, y: 3, z: 5 }, lookAt: center, fov: 50 }]
-        case 'pan': return [{ time: 0, position: { x: -5, y: 3, z: 5 }, lookAt: center, fov: 50 }, { time: dur, position: { x: 5, y: 3, z: 5 }, lookAt: center, fov: 50 }]
-        case 'orbit': return Array.from({ length: 5 }, (_, i) => { const a = (i / 4) * Math.PI * 2; return { time: (i / 4) * dur, position: { x: Math.cos(a) * 6, y: 3, z: Math.sin(a) * 6 }, lookAt: center, fov: 50 } })
-        case 'dolly': return [{ time: 0, position: { x: 0, y: 2, z: 10 }, lookAt: center, fov: 50 }, { time: dur, position: { x: 0, y: 2, z: 3 }, lookAt: center, fov: 50 }]
-        case 'crane': return [{ time: 0, position: { x: 3, y: 0.5, z: 3 }, lookAt: center, fov: 55 }, { time: dur * 0.5, position: { x: 2, y: 5, z: 2 }, lookAt: center, fov: 45 }, { time: dur, position: { x: 0, y: 8, z: 0 }, lookAt: center, fov: 40 }]
-        case 'follow': return [{ time: 0, position: { x: -2, y: 2, z: 4 }, lookAt: center, fov: 50 }, { time: dur, position: { x: 2, y: 2, z: 4 }, lookAt: { ...center, x: center.x + 2 }, fov: 50 }]
-        case 'shake': { const kfs: CameraKeyframe[] = []; const n = Math.floor(dur * 8); for (let i = 0; i <= n; i++) { const t = (i / n) * dur, int = Math.max(0, 1 - i / n) * 0.15; kfs.push({ time: t, position: { x: 5 + (Math.random() - 0.5) * int, y: 3 + (Math.random() - 0.5) * int, z: 5 + (Math.random() - 0.5) * int }, lookAt: center, fov: 50 }); } return kfs }
-        default: return [{ time: 0, position: { x: 5, y: 3, z: 5 }, lookAt: center, fov: 50 }]
+        case 'static': {
+            // Static but with varied angles
+            const angles = [
+                { pos: { x: 4, y: 2.5, z: 4 }, fov: 50 },     // 3/4 view
+                { pos: { x: 0, y: 2, z: 5 }, fov: 45 },       // front
+                { pos: { x: -3, y: 1.5, z: 4 }, fov: 55 },    // left
+                { pos: { x: 5, y: 1, z: 2 }, fov: 40 },       // right low
+                { pos: { x: 0, y: 4, z: 3 }, fov: 50 },       // high front
+                { pos: { x: -2, y: 0.8, z: 3 }, fov: 60 },    // low left
+                { pos: { x: 3, y: 3, z: -2 }, fov: 45 },      // behind high
+                { pos: { x: 1, y: 1.5, z: 6 }, fov: 35 },     // telephoto front
+            ]
+            const a = angles[v]
+            return [{ time: 0, position: a.pos, lookAt: center, fov: a.fov }]
+        }
+
+        case 'pan': {
+            // Horizontal sweep with height variation
+            const height = 1.5 + (v % 3) * 1.5
+            const dist = 4 + (v % 2) * 2
+            return [
+                { time: 0, position: { x: -dist, y: height, z: dist * 0.7 }, lookAt: center, fov: 50 },
+                { time: dur * 0.5, position: { x: 0, y: height - 0.3, z: dist }, lookAt: center, fov: 48 },
+                { time: dur, position: { x: dist, y: height, z: dist * 0.7 }, lookAt: center, fov: 50 },
+            ]
+        }
+
+        case 'orbit': {
+            // Full or partial orbit at varied heights and distances
+            const heights = [2, 3.5, 1.5, 5, 2.5, 4, 1, 3]
+            const dists = [5, 7, 4, 8, 6, 5, 3.5, 6.5]
+            const h = heights[v]
+            const d = dists[v]
+            const startAngle = (v * Math.PI * 0.3) // offset start angle per scene
+            const arcLength = (v % 2 === 0) ? Math.PI * 1.5 : Math.PI * 2 // partial or full orbit
+            const kfCount = 6
+
+            return Array.from({ length: kfCount }, (_, i) => {
+                const t = i / (kfCount - 1)
+                const angle = startAngle + t * arcLength
+                const currentH = h + Math.sin(t * Math.PI) * 0.8 // slight height arc
+                const fov = 45 + Math.sin(t * Math.PI) * 8 // fov breathe
+                return {
+                    time: t * dur,
+                    position: { x: Math.cos(angle) * d, y: currentH, z: Math.sin(angle) * d },
+                    lookAt: { x: center.x, y: center.y + Math.sin(t * Math.PI * 2) * 0.3, z: center.z },
+                    fov,
+                }
+            })
+        }
+
+        case 'dolly': {
+            // Push in or pull out with varied angles
+            const pushIn = v % 2 === 0
+            const angle = (v * 0.4)
+            const startDist = pushIn ? 8 : 3
+            const endDist = pushIn ? 2.5 : 8
+            const startH = pushIn ? 2.5 : 1.5
+            const endH = pushIn ? 1.5 : 3
+            const startFov = pushIn ? 55 : 35
+            const endFov = pushIn ? 35 : 55
+
+            return [
+                { time: 0, position: { x: Math.cos(angle) * startDist, y: startH, z: Math.sin(angle) * startDist }, lookAt: center, fov: startFov },
+                { time: dur * 0.4, position: { x: Math.cos(angle) * (startDist + endDist) / 2, y: (startH + endH) / 2, z: Math.sin(angle) * (startDist + endDist) / 2 }, lookAt: center, fov: (startFov + endFov) / 2 },
+                { time: dur, position: { x: Math.cos(angle) * endDist, y: endH, z: Math.sin(angle) * endDist }, lookAt: center, fov: endFov },
+            ]
+        }
+
+        case 'crane': {
+            // Low to high with dramatic reveal
+            const angle = v * 0.5
+            const d = 3 + (v % 3)
+            return [
+                { time: 0, position: { x: Math.cos(angle) * d, y: 0.3, z: Math.sin(angle) * d }, lookAt: { ...center, y: 0.5 }, fov: 60 },
+                { time: dur * 0.3, position: { x: Math.cos(angle + 0.2) * d, y: 2, z: Math.sin(angle + 0.2) * d }, lookAt: center, fov: 50 },
+                { time: dur * 0.7, position: { x: Math.cos(angle + 0.5) * (d + 1), y: 5, z: Math.sin(angle + 0.5) * (d + 1) }, lookAt: center, fov: 42 },
+                { time: dur, position: { x: Math.cos(angle + 0.8) * (d + 2), y: 8, z: Math.sin(angle + 0.8) * (d + 2) }, lookAt: center, fov: 35 },
+            ]
+        }
+
+        case 'follow': {
+            // Arc around subject with slight approach
+            const startAngle = v * 0.7
+            const d = 4
+            return [
+                { time: 0, position: { x: Math.cos(startAngle) * d, y: 1.5, z: Math.sin(startAngle) * d }, lookAt: center, fov: 50 },
+                { time: dur * 0.3, position: { x: Math.cos(startAngle + 0.3) * (d - 0.5), y: 1.8, z: Math.sin(startAngle + 0.3) * (d - 0.5) }, lookAt: { ...center, y: center.y + 0.2 }, fov: 48 },
+                { time: dur * 0.7, position: { x: Math.cos(startAngle + 0.8) * (d - 1), y: 2.2, z: Math.sin(startAngle + 0.8) * (d - 1) }, lookAt: center, fov: 45 },
+                { time: dur, position: { x: Math.cos(startAngle + 1.2) * d, y: 2, z: Math.sin(startAngle + 1.2) * d }, lookAt: center, fov: 50 },
+            ]
+        }
+
+        case 'shake': {
+            const kfs: CameraKeyframe[] = []
+            const n = Math.floor(dur * 8)
+            for (let i = 0; i <= n; i++) {
+                const t = (i / n) * dur
+                const decay = Math.max(0, 1 - i / n) * 0.15
+                kfs.push({
+                    time: t,
+                    position: {
+                        x: 5 + (Math.random() - 0.5) * decay,
+                        y: 3 + (Math.random() - 0.5) * decay,
+                        z: 5 + (Math.random() - 0.5) * decay,
+                    },
+                    lookAt: center,
+                    fov: 50 + (Math.random() - 0.5) * decay * 30,
+                })
+            }
+            return kfs
+        }
+
+        default:
+            return [{ time: 0, position: { x: 5, y: 3, z: 5 }, lookAt: center, fov: 50 }]
     }
+}
+
+/**
+ * Select a cinematic camera movement based on scene index.
+ * Ensures variety across the documentary with no repeated patterns.
+ */
+export function selectCinematicMove(sceneIndex: number, mood?: string): CameraMoveType {
+    const pattern: CameraMoveType[] = [
+        'orbit',   // Scene 1: establishing orbit
+        'dolly',   // Scene 2: push in
+        'crane',   // Scene 3: dramatic crane
+        'pan',     // Scene 4: lateral sweep
+        'follow',  // Scene 5: tracking
+        'orbit',   // Scene 6: wide orbit  
+        'dolly',   // Scene 7: pull out
+        'crane',   // Scene 8: low to high
+    ]
+
+    if (mood === 'dramatic') return 'crane'
+    if (mood === 'intimate') return 'dolly'
+    if (mood === 'epic') return 'orbit'
+
+    return pattern[sceneIndex % pattern.length]
 }
 
 // ── Shot Presets ──

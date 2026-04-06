@@ -1,3 +1,4 @@
+import 'dotenv/config'
 /* ====== TrustGen — Express Backend Server ====== */
 import express from 'express'
 import cors from 'cors'
@@ -1137,30 +1138,8 @@ app.post('/api/webhooks/stripe-relay', express.json(), async (req, res) => {
     }
 })
 
-// ── Start Server ──
-app.listen(PORT, async () => {
-    await initDB()
-    console.log(`🚀 TrustGen API running on http://localhost:${PORT}`)
-
-    // ── Genesis Hallmark (first boot check) ──
-    try {
-        const genesisCheck = await pool.query(
-            "SELECT id FROM hallmarks WHERE hallmark_type = 'genesis' LIMIT 1"
-        )
-        if (genesisCheck.rows.length === 0 && process.env.TRUSTLAYER_API_KEY) {
-            const tl = await import('./trustLayerApi.js')
-            const result = await tl.createGenesisHallmark()
-            await pool.query(
-                `INSERT INTO hallmarks (user_id, hallmark_id, hallmark_type, product_name, metadata)
-                 VALUES ('00000000-0000-0000-0000-000000000000', $1, 'genesis', 'TrustGen 3D Engine', $2)`,
-                [result.hallmark.hallmarkId, JSON.stringify(result.hallmark)]
-            )
-            console.log(`◈ Genesis hallmark created: ${result.hallmark.hallmarkId}`)
-        }
-    } catch (err) {
-        console.log('⚠ Genesis hallmark skipped (Trust Layer not configured yet)')
-    }
-})
+// NOTE: Server start is handled by boot() at the end of this file.
+// The initDB() + genesis hallmark check runs there with error handling.
 
 // ════════════════════════════════
 //  TRUST LAYER — SSO TOKEN EXCHANGE
@@ -2985,8 +2964,8 @@ async function boot() {
         await initBlogTable()
         await seedBetaUsers()
     } catch (err) {
-        console.error('❌ Database initialization failed:', err)
-        process.exit(1)
+        console.error('⚠️  Database initialization failed (non-fatal for local dev):', err)
+        console.log('   → Voice-over & Text-to-3D endpoints will still work')
     }
 
     const port = Number(process.env.PORT) || 4000
