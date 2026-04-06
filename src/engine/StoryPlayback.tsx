@@ -22,9 +22,9 @@ import { useEngineStore } from '../store'
 import { interpolateCamera, getShotAtTime } from './Sequencer'
 
 // ── Procedural Generators ──
-import { buildCharacter, CHARACTER_PRESETS, type CharacterGenConfig, DEFAULT_CHARACTER } from './CharacterCreator'
-import { buildCreature, QUADRUPED_PRESETS, BIRD_PRESETS, ALL_CREATURE_PRESETS } from './generators/CreatureGenerator'
-import { buildTree, buildRock, buildPlant, TREE_PRESETS, ROCK_PRESETS, PLANT_PRESETS } from './generators/NatureGenerator'
+import { buildCharacter, CHARACTER_PRESETS, type CharacterConfig, DEFAULT_CHARACTER } from './CharacterCreator'
+import { buildCreature, ALL_CREATURE_PRESETS } from './generators/CreatureGenerator'
+import { buildTree, buildRock, buildPlant, TREE_PRESETS, PLANT_PRESETS } from './generators/NatureGenerator'
 import { parseDescriptionLocal } from './TextTo3DGenerator'
 
 // Tag for cinematic objects so we can find/remove them
@@ -346,7 +346,7 @@ function buildShotScene(shotIndex: number, scene: THREE.Scene) {
 // ═══════════════════════════════════════════════════════
 
 interface CharMatch {
-    config: CharacterGenConfig
+    config: CharacterConfig
     x?: number
 }
 
@@ -363,7 +363,7 @@ function matchCharacters(text: string): CharMatch[] {
     }
 
     // Check common character keywords
-    const CHAR_KEYWORDS: [string, Partial<CharacterGenConfig>][] = [
+    const CHAR_KEYWORDS: [string, Partial<CharacterConfig>][] = [
         ['person', {}],
         ['human', {}],
         ['man', { gender: 'masculine' }],
@@ -392,7 +392,7 @@ function matchCharacters(text: string): CharMatch[] {
     return results
 }
 
-function matchCharacterPreset(name: string): CharacterGenConfig {
+function matchCharacterPreset(name: string): CharacterConfig {
     // Try to find a matching preset
     const preset = CHARACTER_PRESETS.find(p => name.includes(p.id))
     if (preset) return { ...preset.config }

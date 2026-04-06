@@ -124,7 +124,6 @@ function EditorLayout() {
   )
 }
 
-import { PresaleBanner } from './components/PresaleBanner'
 import { EcosystemAccountHub } from './components/EcosystemAccountHub'
 import { AmbientOrbs } from './components/AmbientOrbs'
 import { CustomCursor } from './components/CustomCursor'
