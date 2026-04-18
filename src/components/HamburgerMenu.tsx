@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { searchHelp, HELP_ARTICLES, HELP_CATEGORIES, type HelpArticle } from '../engine/HelpCenter'
 import { ECOSYSTEM_APPS } from '../engine/Dashboard'
+import { EcosystemRoadmap } from './EcosystemRoadmap'
 
 // ── Nav Groups ──
 
@@ -246,8 +247,7 @@ export function HamburgerMenu() {
                         {/* ── Ecosystem Section ── */}
                         {activeSection === 'ecosystem' && (
                             <div className="hamburger-ecosystem">
-                                <div className="hamburger-ecosystem-label">Trust Layer Apps</div>
-                                <div className="hamburger-ecosystem-grid">
+                                <div className="hamburger-ecosystem-label">Ecosystem Navigation</div>`n                                <EcosystemRoadmap />`n                                <div className="hamburger-ecosystem-label mt-6">Trust Layer Apps</div>`n                                <div className="hamburger-ecosystem-grid">
                                     {ECOSYSTEM_APPS.map(app => (
                                         <a
                                             key={app.id}

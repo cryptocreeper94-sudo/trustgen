@@ -8,54 +8,16 @@ import { useState } from 'react';
 const PRESALE_URL = 'https://dwtl.io/presale';
 
 const styles: Record<string, React.CSSProperties> = {
-  banner: {
-    position: 'sticky' as any, top: 0, zIndex: 1100,
-    background: 'linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(168,85,247,0.04) 50%, rgba(6,182,212,0.06) 100%)',
-    backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-    borderBottom: '1px solid rgba(6,182,212,0.25)', padding: '10px 16px',
-  },
-  inner: {
-    maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 12, flexWrap: 'wrap' as const,
-  },
-  live: {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '3px 10px', borderRadius: 999,
-    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
-    fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
-    textTransform: 'uppercase' as const, color: '#6ee7b7',
-  },
-  dot: {
-    width: 6, height: 6, borderRadius: '50%', background: '#34d399',
-    boxShadow: '0 0 8px rgba(52,211,153,0.5)',
-  },
-  token: {
-    fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
-    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const,
-    justifyContent: 'center',
-  },
-  price: { fontSize: 14, fontWeight: 900, color: '#67e8f9', fontFamily: 'monospace' },
-  arrow: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
-  tge: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
-  multiplier: {
-    display: 'inline-flex', padding: '2px 8px', borderRadius: 6,
-    background: 'linear-gradient(135deg, rgba(6,182,212,0.12), rgba(168,85,247,0.08))',
-    border: '1px solid rgba(6,182,212,0.2)',
-    fontSize: 11, fontWeight: 900, color: '#67e8f9',
-  },
-  cta: {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '7px 20px', borderRadius: 999,
-    background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
-    color: '#fff', fontSize: 12, fontWeight: 700,
-    textDecoration: 'none', border: 'none', cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-  },
-  dismiss: {
-    position: 'absolute' as const, right: 12, top: '50%', transform: 'translateY(-50%)',
-    background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)',
-    fontSize: 14, cursor: 'pointer', padding: 4,
-  },
+  container: { position: 'fixed', bottom: 72, left: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 280, animation: 'slideUp 0.5s ease-out' },
+  widget: { position: 'relative', background: 'linear-gradient(135deg, rgba(6,182,212,0.15) 0%, rgba(168,85,247,0.1) 100%)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 16, padding: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.15)' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  live: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 8px', borderRadius: 999, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#34d399' },
+  dot: { width: 6, height: 6, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.8)', animation: 'pulse 2s infinite' },
+  dismiss: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', transition: 'background 0.2s, color 0.2s' },
+  title: { fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 4 },
+  desc: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 12, lineHeight: 1.4 },
+  price: { color: '#67e8f9', fontWeight: 700 },
+  cta: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 10, borderRadius: 8, background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(6,182,212,0.3)', transition: 'transform 0.2s, box-shadow 0.2s' }
 };
 
 export function PresaleBanner() {
@@ -66,24 +28,18 @@ export function PresaleBanner() {
   if (dismissed) return null;
 
   return (
-    <div style={styles.banner}>
-      <div style={styles.inner}>
-        <span style={styles.live}><span style={styles.dot} /> LIVE</span>
-        <span style={styles.token}>
-          Signal Charging
-          <span style={styles.price}>$0.001</span>
-          <span style={styles.arrow}>→</span>
-          <span style={styles.tge}>$0.01 at TGE</span>
-          <span style={styles.multiplier}>10×</span>
-        </span>
-        <a style={styles.cta} href={PRESALE_URL} target="_blank" rel="noopener noreferrer">
-          ⚡ Start Charging
-        </a>
+    <div style={styles.container}>
+      <div style={styles.widget}>
+        <div style={styles.header}>
+            <span style={styles.live}><span style={styles.dot} /> LIVE</span>
+            <button style={styles.dismiss} onClick={() => { setDismissed(true); try { sessionStorage.setItem('presale-banner-dismissed', 'true') } catch {} }} aria-label="Dismiss">✕</button>
+        </div>
+        <div style={styles.title}>Signal Charging</div>
+        <div style={styles.desc}>Get <span style={styles.price}>$0.001</span> early access before TGE ($0.01).</div>
+        <a style={styles.cta} href={PRESALE_URL} target="_blank" rel="noopener noreferrer">⚡ Join Presale</a>
       </div>
-      <button style={styles.dismiss} onClick={() => {
-        setDismissed(true);
-        try { sessionStorage.setItem('presale-banner-dismissed', 'true'); } catch {}
-      }} aria-label="Dismiss">✕</button>
+      <style>{`@keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
     </div>
   );
 }
+

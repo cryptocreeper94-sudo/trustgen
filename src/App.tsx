@@ -24,6 +24,8 @@ import { BlogPage } from './pages/BlogPage'
 import { BlogPostPage } from './pages/BlogPostPage'
 import { SignalChatWidget } from './components/SignalChatWidget'
 import { HamburgerMenu } from './components/HamburgerMenu'
+import { EcosystemFooter } from './components/EcosystemFooter'
+import { FloatingThemeToggle } from './components/ThemeToggle'
 import { InvestorPage } from './pages/InvestorPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { AffiliatePage } from './pages/AffiliatePage'
@@ -190,8 +192,7 @@ export default function App() {
       <ToastContainer />
       <SignalChatWidget />
       <HamburgerMenu />
-      <BetaMilestonePanel />
-      <PWAInstallBanner />
+      <BetaMilestonePanel />`n      <PWAInstallBanner />`n      <EcosystemFooter appId="trustgen" />
     </BrowserRouter>
   )
 }
