@@ -1,6 +1,6 @@
 /* ====== TrustGen — Global Footer (Unified Ecosystem) ====== */
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 const socialLinks = [
   { name: "Twitter", url: "https://x.com/TrustSignal26", icon: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" },
@@ -14,13 +14,22 @@ export function Footer() {
   const location = useLocation()
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
+  const OWNER_PIN = "0424";
 
   const handleShieldClick = useCallback(() => {
     clickCountRef.current += 1;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     if (clickCountRef.current >= 3) {
       clickCountRef.current = 0;
-      window.open("https://dwtl.io/developer-portal", "_blank");
+      setShowPinModal(true);
+      setPin("");
+      setPinError(false);
+      setTimeout(() => pinInputRef.current?.focus(), 100);
     } else {
       clickTimerRef.current = setTimeout(() => {
         clickCountRef.current = 0;
@@ -32,6 +41,7 @@ export function Footer() {
   if (location.pathname.startsWith('/editor')) return null
 
   return (
+    <>
     <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: '#070b16' }} data-testid="footer">
       {/* Site Links */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -101,5 +111,65 @@ export function Footer() {
         </div>
       </div>
     </footer>
+
+    {/* PIN Gate Modal */}
+    {showPinModal && (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} onClick={() => setShowPinModal(false)}>
+        <div onClick={(e) => e.stopPropagation()} style={{
+          width: 280, padding: '32px 24px', borderRadius: 20,
+          background: '#0a0e1a', border: '1px solid rgba(6,182,212,0.15)',
+          boxShadow: '0 32px 100px rgba(6,182,212,0.1)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+          animation: pinError ? 'shake 0.4s ease' : undefined,
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke={pinError ? '#ef4444' : '#06b6d4'} strokeWidth="2" style={{ width: 28, height: 28 }}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>Enter PIN</p>
+          <input
+            ref={pinInputRef}
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            autoFocus
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+              setPin(v);
+              if (v.length === 4) {
+                setTimeout(() => {
+                  if (v === OWNER_PIN) {
+                    setShowPinModal(false);
+                    setPin('');
+                    window.location.href = '/command';
+                  } else {
+                    setPinError(true);
+                    setPin('');
+                    setTimeout(() => setPinError(false), 600);
+                  }
+                }, 100);
+              }
+            }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowPinModal(false); }}
+            style={{
+              width: 140, textAlign: 'center', letterSpacing: 12, fontSize: 24,
+              fontWeight: 800, padding: '12px 16px', borderRadius: 12,
+              background: 'rgba(255,255,255,0.03)', color: 'white',
+              border: `2px solid ${pinError ? 'rgba(239,68,68,0.5)' : 'rgba(6,182,212,0.2)'}`,
+              outline: 'none', caretColor: '#06b6d4',
+            }}
+            placeholder="····"
+          />
+          <p style={{ fontSize: 10, color: pinError ? '#ef4444' : 'rgba(255,255,255,0.15)' }}>
+            {pinError ? 'Incorrect PIN' : '4-digit developer access code'}
+          </p>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
