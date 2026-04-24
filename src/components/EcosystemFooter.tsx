@@ -29,6 +29,8 @@ const APPS: AppEntry[] = [
   { id:'dw-studio',      v:'language',   n:'DW Studio',           i:'🖥️', u:'https://studio.tlid.io',         hook:'Ecosystem IDE for Lume'          },
   { id:'dw-academy',     v:'language',   n:'DW Academy',          i:'📖', u:'https://academy.tlid.io',        hook:'Learn the Ecosystem'             },
   { id:'lumeline',       v:'language',   n:'LumeLine',            i:'📊', u:'https://lumeline.app',           hook:'Sharp Sports Intelligence'       },
+  { id:'axiom-studio',   v:'language',   n:'Axiom Studio',        i:'🧠', u:'https://axiomstudio.dev',        hook:'Multi-Agent AI IDE'              },
+  { id:'axiom42',        v:'language',   n:'Axiom42 API',         i:'⚛️', u:'https://axiom42.com',            hook:'Deterministic AI Agent'          },
   { id:'trustgen',       v:'creative',   n:'TrustGen 3D',         i:'🎨', u:'https://trustgen.tlid.io',       hook:'AI 3D Creation Studio'           },
   { id:'darkwavestudios',v:'creative',   n:'DarkWave Studios',    i:'🎛️', u:'https://darkwavestudios.io',     hook:'Premium Web Agency'              },
   { id:'trust-book',     v:'creative',   n:'Trust Book',          i:'📚', u:'https://dwtl.io/trust-book',     hook:'Censorship-Free Publishing'      },
